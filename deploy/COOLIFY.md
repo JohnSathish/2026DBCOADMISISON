@@ -18,6 +18,10 @@ Production domain: **https://admissionsdbctura.com**
 
 In Coolify: set **Build context** to the repo root and **Dockerfile path** to `deploy/docker/api/Dockerfile` or `deploy/docker/web/Dockerfile`.
 
+### If Coolify uses Nixpacks instead of your Dockerfile
+
+If the build log shows `railwayapp/nixpacks` and **.NET SDK 6**, the app will fail (`NETSDK1045` for net8.0). **Fix:** switch the service to **Dockerfile** build and point at `deploy/docker/api/Dockerfile`. As a fallback, this repo includes `nixpacks.toml` (`NIXPACKS_CSHARP_SDK_VERSION=8.0`) and `global.json` so Nixpacks can use **.NET 8** if you stay on auto-build.
+
 ## 1. PostgreSQL
 
 1. Create a **PostgreSQL** database in Coolify (or use an external host).

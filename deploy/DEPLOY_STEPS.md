@@ -47,7 +47,9 @@ Domain: **admissionsdbctura.com** · Example server IP: **82.25.110.120**
 
 ## Phase 5 — Deploy the API (ERP.Api)
 
-1. **New resource** → **Dockerfile** (or **Application** → Dockerfile build).
+**Important:** In Coolify, set the build type to **Dockerfile**, not the default **Nixpacks** auto-detect. Nixpacks may pick **.NET 6** and fail with `NETSDK1045` for .NET 8 projects. The repo includes `nixpacks.toml` + `global.json` to pin SDK 8 if you must use Nixpacks.
+
+1. **New resource** → **Dockerfile** (not “Build Pack” / Nixpacks only).
 2. **Repository:** your ERP repo  
 3. **Build context:** repository **root** (folder that contains `ERP.sln`).  
 4. **Dockerfile path:** `deploy/docker/api/Dockerfile`

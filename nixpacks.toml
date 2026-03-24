@@ -1,0 +1,6 @@
+# Nixpacks (Coolify/Railway auto-build): force .NET 8 so `dotnet restore` does not use SDK 6.
+# Prefer deploying with Dockerfile: deploy/docker/api/Dockerfile (see deploy/DEPLOY_STEPS.md).
+# https://nixpacks.com/docs/providers/csharp
+
+[variables]
+NIXPACKS_CSHARP_SDK_VERSION = "8.0"
