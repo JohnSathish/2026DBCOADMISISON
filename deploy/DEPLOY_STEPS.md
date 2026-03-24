@@ -125,6 +125,17 @@ That only works if the browser can reach the API at **the same host** under `/ap
 
 ---
 
+## Troubleshooting — API image build fails early (exit 255)
+
+If logs stop right after **Determining projects to restore…** or **dotnet publish**, the build worker often **ran out of memory** or hit a **time limit**. Actions:
+
+1. **Coolify / server:** Increase **RAM** for Docker builds (and ensure the server isn’t swapping to death during `dotnet restore`).
+2. **Redeploy** after pulling the latest `Dockerfile`: it restores with `--disable-parallel` and publishes with `-m:1` to lower peak memory.
+
+If it still fails, open the **full build log** (download or raw) — the UI sometimes truncates the real MSBuild/NuGet error.
+
+---
+
 ## Quick reference (paths in this repo)
 
 | Item | Path |
