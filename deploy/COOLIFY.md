@@ -8,7 +8,7 @@ Production domain: **https://admissionsdbctura.com**
 |--------|------|
 | **Coolify** | Control panel on Ubuntu 24.04; Docker; Traefik; TLS |
 | **PostgreSQL** | Coolify “Database” resource or managed Postgres |
-| **ERP.Api** | `deploy/docker/api/Dockerfile` — ASP.NET Core 8 on port **8080** |
+| **ERP.Api** | `Dockerfile` (repo root) or `deploy/docker/api/Dockerfile` — ASP.NET Core 8 on port **8080** |
 | **Applicant portal** | `deploy/docker/web/Dockerfile` — nginx static files on port **80** |
 
 ## Build context
@@ -16,11 +16,11 @@ Production domain: **https://admissionsdbctura.com**
 - **API Dockerfile:** repository root = `E:\Projects\ERP` (the folder containing `ERP.sln` and `src/server`).
 - **Web Dockerfile:** same context (so `COPY src/client` works).
 
-In Coolify: set **Build context** to the repo root and **Dockerfile path** to `deploy/docker/api/Dockerfile` or `deploy/docker/web/Dockerfile`.
+In Coolify: set **Build context** to the repo root. **API Dockerfile path:** `Dockerfile` or `deploy/docker/api/Dockerfile` (identical). **Web:** `deploy/docker/web/Dockerfile`.
 
 ### If Coolify uses Nixpacks instead of your Dockerfile
 
-If the build log shows `railwayapp/nixpacks` and **.NET SDK 6**, the app will fail (`NETSDK1045` for net8.0). **Fix:** switch the service to **Dockerfile** build and point at `deploy/docker/api/Dockerfile`. As a fallback, this repo includes `nixpacks.toml` (`NIXPACKS_CSHARP_SDK_VERSION=8.0`) and `global.json` so Nixpacks can use **.NET 8** if you stay on auto-build.
+If the build log shows `railwayapp/nixpacks` and **.NET SDK 6**, the app will fail (`NETSDK1045` for net8.0). **Fix:** switch the service to **Dockerfile** build and point at `Dockerfile` (repo root) or `deploy/docker/api/Dockerfile`. As a fallback, this repo includes `nixpacks.toml` (`NIXPACKS_CSHARP_SDK_VERSION=8.0`) and `global.json` so Nixpacks can use **.NET 8** if you stay on auto-build.
 
 ## 1. PostgreSQL
 
@@ -30,7 +30,7 @@ If the build log shows `railwayapp/nixpacks` and **.NET SDK 6**, the app will fa
 ## 2. API service
 
 1. New resource → **Dockerfile** (or Docker Compose pointing at `deploy/docker-compose.yml` for local tests only).
-2. **Dockerfile:** `deploy/docker/api/Dockerfile`
+2. **Dockerfile:** `Dockerfile` (repo root) or `deploy/docker/api/Dockerfile`
 3. **Port:** `8080` (internal). Expose publicly only if you use a **subdomain** (e.g. `api.admissionsdbctura.com`); otherwise keep it internal and route via Traefik on the **same** domain (see below).
 
 ### Required environment variables (Coolify)

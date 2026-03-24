@@ -52,7 +52,7 @@ Domain: **admissionsdbctura.com** · Example server IP: **82.25.110.120**
 1. **New resource** → **Dockerfile** (not “Build Pack” / Nixpacks only).
 2. **Repository:** your ERP repo  
 3. **Build context:** repository **root** (folder that contains `ERP.sln`).  
-4. **Dockerfile path:** `deploy/docker/api/Dockerfile`
+4. **Dockerfile path:** `Dockerfile` (repo root) **or** `deploy/docker/api/Dockerfile` — same image. Leave blank only if Coolify defaults to `./Dockerfile` (the root file is provided for that).
 5. **Port:** `8080` (container listens on 8080; Coolify/Traefik will map HTTPS to it).
 6. **Environment variables** (minimum):
 
@@ -129,7 +129,7 @@ That only works if the browser can reach the API at **the same host** under `/ap
 
 | Item | Path |
 |------|------|
-| API Dockerfile | `deploy/docker/api/Dockerfile` |
+| API Dockerfile | `Dockerfile` (root) or `deploy/docker/api/Dockerfile` |
 | Web Dockerfile | `deploy/docker/web/Dockerfile` |
 | Env template | `deploy/production.env.example` |
 | Coolify details | `deploy/COOLIFY.md` |

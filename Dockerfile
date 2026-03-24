@@ -1,5 +1,5 @@
 # ERP.Api — .NET 8, Kestrel on port 8080 (Coolify / Docker)
-# Kept in sync with /Dockerfile at repo root (Coolify default path uses root Dockerfile).
+# Same as deploy/docker/api/Dockerfile. Placed at repo root so Coolify "Dockerfile" default path works.
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
