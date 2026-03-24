@@ -12,4 +12,6 @@ public sealed record OfflineFormIssuancePreviewDto(
     decimal ApplicationFeeAmount,
     DateTime IssuedOnUtc,
     bool ApplicantAccountCreated,
-    Guid? ApplicantAccountId);
+    Guid? ApplicantAccountId,
+    string? ShiftLabel,
+    bool? CuetApplied);

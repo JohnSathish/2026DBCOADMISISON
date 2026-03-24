@@ -91,6 +91,7 @@ export class PaymentComponent {
     amount: number;
     currency: string;
     keyId: string;
+    checkoutLogoUrl?: string | null;
   }): void {
     const profile = this.store.dashboard()?.profile;
     const options = buildRazorpayStandardOptions({
@@ -117,6 +118,7 @@ export class PaymentComponent {
       },
       themeColor: '#1b5e9d',
       onDismiss: () => this.isProcessing.set(false),
+      checkoutLogoUrl: order.checkoutLogoUrl,
     });
 
     const razorpay = new window.Razorpay(options);

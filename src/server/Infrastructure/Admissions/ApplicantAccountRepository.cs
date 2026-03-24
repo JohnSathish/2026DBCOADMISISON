@@ -158,18 +158,38 @@ public class ApplicantAccountRepository : IApplicantAccountRepository
         decimal? maxClassXiiPercentage = null,
         string? admissionPath = null,
         string? admissionChannel = null,
+        string? applicationLifecycleStage = null,
         CancellationToken cancellationToken = default)
     {
         var query = _context.StudentApplicantAccounts.AsNoTracking();
 
-        if (isApplicationSubmitted.HasValue)
+        if (!string.IsNullOrWhiteSpace(applicationLifecycleStage))
         {
-            query = query.Where(x => x.IsApplicationSubmitted == isApplicationSubmitted.Value);
+            var stage = applicationLifecycleStage.Trim().ToLowerInvariant();
+            var draftAccountIds = _context.ApplicantApplicationDrafts.AsNoTracking().Select(d => d.AccountId);
+            query = stage switch
+            {
+                "registered" => query.Where(a =>
+                    !a.IsApplicationSubmitted && !draftAccountIds.Contains(a.Id)),
+                "forminprogress" => query.Where(a =>
+                    !a.IsApplicationSubmitted && draftAccountIds.Contains(a.Id)),
+                "paid" => query.Where(a => a.IsApplicationSubmitted && a.IsPaymentCompleted),
+                "paymentpending" => query.Where(a => a.IsApplicationSubmitted && !a.IsPaymentCompleted),
+                "submitted" => query.Where(a => a.IsApplicationSubmitted),
+                _ => query
+            };
         }
-
-        if (isPaymentCompleted.HasValue)
+        else
         {
-            query = query.Where(x => x.IsPaymentCompleted == isPaymentCompleted.Value);
+            if (isApplicationSubmitted.HasValue)
+            {
+                query = query.Where(x => x.IsApplicationSubmitted == isApplicationSubmitted.Value);
+            }
+
+            if (isPaymentCompleted.HasValue)
+            {
+                query = query.Where(x => x.IsPaymentCompleted == isPaymentCompleted.Value);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(searchTerm))

@@ -127,6 +127,36 @@
   margin-bottom: 1.5rem;
 }
 
+.app-lifecycle {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.app-lifecycle--registered {
+  background: rgba(100, 116, 139, 0.2);
+  color: #475569;
+}
+
+.app-lifecycle--in-progress {
+  background: rgba(59, 130, 246, 0.18);
+  color: #1d4ed8;
+}
+
+.app-lifecycle--payment-pending {
+  background: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+}
+
+.app-lifecycle--paid {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+}
+
 .table-card {
   margin-bottom: 1.5rem;
 }
@@ -145,6 +175,21 @@
 .filter-item {
   display: flex;
   flex-direction: column;
+}
+
+.filter-item--wide {
+  grid-column: 1 / -1;
+
+  @media (min-width: 768px) {
+    grid-column: span 3;
+  }
+}
+
+.filter-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #64748b;
 }
 
 .filter-label {

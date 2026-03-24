@@ -34,7 +34,8 @@ public sealed record OnlineApplicationDetailDto(
     string? OfflineIssuedMajorSubject = null,
     DateTime? OfflineFormReceivedOnUtc = null,
     AdmissionSelectionListRound? SelectionListRound = null,
-    DateTime? SelectionListPublishedAtUtc = null);
+    DateTime? SelectionListPublishedAtUtc = null,
+    bool? CuetAppliedAtIssue = null);
 
 
 

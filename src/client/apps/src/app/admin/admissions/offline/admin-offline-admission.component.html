@@ -31,8 +31,24 @@
       <input [(ngModel)]="issue.formNumber" maxlength="6" name="issueFormNumber" />
       <label>Student name</label>
       <input [(ngModel)]="issue.studentName" name="issueName" />
+      <label>Shift</label>
+      <select [(ngModel)]="issue.shift" name="issueShift">
+        <option value="">Select shift…</option>
+        <option value="ShiftI">Shift-I</option>
+        <option value="ShiftII">Shift-II</option>
+        <option value="ShiftIII">Shift-III</option>
+      </select>
       <label>Mobile (used as first login password after receive)</label>
       <input [(ngModel)]="issue.mobileNumber" name="issueMobile" />
+      <label>Have you applied for CUET?</label>
+      <div class="offline-adm__radios">
+        <label class="offline-adm__radio">
+          <input type="radio" name="issueCuet" [(ngModel)]="issue.cuet" value="yes" /> Yes
+        </label>
+        <label class="offline-adm__radio">
+          <input type="radio" name="issueCuet" [(ngModel)]="issue.cuet" value="no" /> No
+        </label>
+      </div>
       <label>Application fee (₹)</label>
       <input type="number" [(ngModel)]="issue.applicationFeeAmount" name="issueFee" />
       <button type="button" class="offline-adm__btn" (click)="issueForm()" [disabled]="loading()">
@@ -40,45 +56,137 @@
       </button>
     </section>
 
-    <section class="offline-adm__card">
+    <section class="offline-adm__card offline-adm__card--receive">
       <h2>Receive physical form &amp; open account</h2>
       <p class="offline-adm__hint">
-        Look up the issued slip, enter the student’s <strong>final</strong> major/course, then confirm. This creates the
-        applicant account and marks the physical form received.
+        Look up the issued slip, choose the <strong>final</strong> major/course from the master list, then confirm. This
+        creates the applicant account (login = form number, first password = mobile) and marks the form received.
       </p>
-      <label>Form number</label>
-      <input
-        [(ngModel)]="receiveFormNumber"
-        maxlength="6"
-        name="recvForm"
-        (blur)="lookupReceivePreview()"
-      />
-      <button type="button" class="offline-adm__btn offline-adm__btn--ghost" (click)="lookupReceivePreview()">
-        Look up
-      </button>
 
-      <div *ngIf="receivePreview() as prev" class="offline-adm__preview">
-        <p *ngIf="prev.applicantAccountCreated" class="offline-adm__warn">
-          Applicant account already exists for this form.
-        </p>
-        <ng-container *ngIf="!prev.applicantAccountCreated">
-          <p><strong>{{ prev.studentName }}</strong> · Mobile {{ prev.mobileNumber }} · Fee ₹{{ prev.applicationFeeAmount }}</p>
-          <p class="offline-adm__hint">Issued {{ prev.issuedOnUtc | date : 'medium' }}</p>
-        </ng-container>
+      <div class="offline-adm__section">
+        <h3 class="offline-adm__section-title">1. Issued form lookup</h3>
+        <label for="recvForm">Form number (6 digits)</label>
+        <input
+          id="recvForm"
+          [(ngModel)]="receiveFormNumber"
+          maxlength="6"
+          name="recvForm"
+          inputmode="numeric"
+          autocomplete="off"
+          (blur)="lookupReceivePreview()"
+        />
+        <button type="button" class="offline-adm__btn offline-adm__btn--ghost" (click)="lookupReceivePreview()">
+          Look up
+        </button>
       </div>
-      <p *ngIf="receivePreview() === null" class="offline-adm__hint">No issued form found for this number.</p>
 
-      <label>Major / course (final choice)</label>
-      <input [(ngModel)]="receiveMajorSubject" name="recvMajor" placeholder="e.g. ENGLISH" />
-      <button
-        type="button"
-        class="offline-adm__btn"
-        (click)="receiveForm()"
-        [disabled]="loading() || receivePreview()?.applicantAccountCreated"
-      >
-        Receive &amp; create account
-      </button>
+      <div *ngIf="receivePreview() === null" class="offline-adm__hint offline-adm__section-spaced">
+        No issued form found for this number.
+      </div>
+
+      <div *ngIf="receivePreview() as prev" class="offline-adm__section offline-adm__section-spaced">
+        <h3 class="offline-adm__section-title">2. Issued form details</h3>
+        <div class="offline-adm__summary" [class.offline-adm__summary--warn]="prev.applicantAccountCreated">
+          <p *ngIf="prev.applicantAccountCreated" class="offline-adm__warn">
+            Applicant account already exists for this form — it cannot be received again.
+          </p>
+          <div class="offline-adm__summary-grid">
+            <div>
+              <span class="offline-adm__summary-label">Student name</span>
+              <span class="offline-adm__summary-value">{{ prev.studentName }}</span>
+            </div>
+            <div>
+              <span class="offline-adm__summary-label">Mobile</span>
+              <span class="offline-adm__summary-value">{{ prev.mobileNumber }}</span>
+            </div>
+            <div>
+              <span class="offline-adm__summary-label">Fee paid</span>
+              <span class="offline-adm__summary-value">₹{{ prev.applicationFeeAmount }}</span>
+            </div>
+            <div>
+              <span class="offline-adm__summary-label">Issued</span>
+              <span class="offline-adm__summary-value">{{ prev.issuedOnUtc | date : 'medium' }}</span>
+            </div>
+            <div *ngIf="prev.shiftLabel">
+              <span class="offline-adm__summary-label">Shift</span>
+              <span class="offline-adm__summary-value">{{ prev.shiftLabel }}</span>
+            </div>
+            <div *ngIf="prev.cuetApplied !== null && prev.cuetApplied !== undefined">
+              <span class="offline-adm__summary-label">CUET status</span>
+              <span class="offline-adm__summary-value">{{ prev.cuetApplied ? 'Applied' : 'Not applied' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="offline-adm__section offline-adm__section-spaced">
+        <h3 class="offline-adm__section-title">3. Final admission details</h3>
+        <p *ngIf="coursesLoadError()" class="offline-adm__warn">
+          Could not load courses. Refresh the page or open <strong>Settings → Courses</strong>.
+        </p>
+        <p *ngIf="!coursesLoadError() && activeCourses().length === 0 && !loading()" class="offline-adm__hint">
+          No active courses in the catalog. Add courses under <strong>Settings → Courses</strong> before receiving forms.
+        </p>
+
+        <label for="courseFilter">Search courses (optional)</label>
+        <input
+          id="courseFilter"
+          type="search"
+          name="courseFilter"
+          [(ngModel)]="courseSearch"
+          placeholder="Type to filter by name, code, or department"
+          [disabled]="!canSelectFinalMajor()"
+          autocomplete="off"
+        />
+
+        <label for="recvMajorSelect">Final major / course <span class="offline-adm__req">*</span></label>
+        <select
+          id="recvMajorSelect"
+          name="recvMajorSelect"
+          [(ngModel)]="receiveMajorSubject"
+          [disabled]="!canSelectFinalMajor() || !activeCourses().length"
+        >
+          <option value="">Select final major/course</option>
+          <option *ngFor="let c of getFilteredCourses()" [value]="c.name">
+            {{ c.name }} — {{ c.programName || 'Program' }} ({{ c.code }})
+          </option>
+        </select>
+        <p class="offline-adm__hint">Selection uses the official course name stored with the applicant record.</p>
+
+        <button
+          type="button"
+          class="offline-adm__btn"
+          (click)="openConfirmReceive()"
+          [disabled]="loading() || !canSelectFinalMajor() || !receiveMajorSubject"
+        >
+          Confirm &amp; Create Student Account
+        </button>
+      </div>
     </section>
+
+    <div
+      class="offline-adm__modal-backdrop"
+      *ngIf="confirmReceiveOpen()"
+      (click)="cancelConfirmReceive()"
+      role="presentation"
+    >
+      <div class="offline-adm__modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="recv-confirm-title">
+        <h3 id="recv-confirm-title">Confirm account creation</h3>
+        <p *ngIf="receivePreview() as cp" class="offline-adm__modal-body">
+          Create portal account for <strong>{{ cp.studentName }}</strong> (form
+          <strong>{{ receiveFormNumber.trim() }}</strong>) with final major/course
+          <strong>{{ receiveMajorSubject }}</strong>? The physical form will be marked received.
+        </p>
+        <div class="offline-adm__modal-actions">
+          <button type="button" class="offline-adm__btn offline-adm__btn--ghost" (click)="cancelConfirmReceive()">
+            Cancel
+          </button>
+          <button type="button" class="offline-adm__btn" (click)="receiveForm()" [disabled]="loading()">
+            Yes, create account
+          </button>
+        </div>
+      </div>
+    </div>
 
     <section class="offline-adm__card">
       <h2>Reprint receipt</h2>

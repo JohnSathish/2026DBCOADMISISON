@@ -6,6 +6,8 @@ public sealed record IssueOfflineAdmissionFormCommand(
     string FormNumber,
     string StudentName,
     string MobileNumber,
+    string Shift,
+    bool CuetApplied,
     decimal ApplicationFeeAmount) : IRequest<IssueOfflineAdmissionFormResult>;
 
 public sealed record IssueOfflineAdmissionFormResult(

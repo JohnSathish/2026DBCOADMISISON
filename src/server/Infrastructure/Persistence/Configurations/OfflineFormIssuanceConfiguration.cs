@@ -17,6 +17,9 @@ public sealed class OfflineFormIssuanceConfiguration : IEntityTypeConfiguration<
         entity.Property(e => e.MobileNumber).HasMaxLength(32).IsRequired();
         entity.Property(e => e.ApplicationFeeAmount).HasPrecision(18, 2);
 
+        entity.Property(e => e.Shift).HasMaxLength(32).IsRequired();
+        entity.Property(e => e.CuetApplied).IsRequired();
+
         entity.HasIndex(e => e.FormNumber).IsUnique();
         entity.HasIndex(e => e.ApplicantAccountId);
     }

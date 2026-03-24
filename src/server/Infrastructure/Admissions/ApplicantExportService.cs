@@ -405,6 +405,9 @@ public class ApplicantExportService : IApplicantExportService
             personal.Category,
             personal.RaceOrTribe,
             personal.Religion,
+            personal.Denomination ?? "",
+            academics.ClassXiiBoardCode ?? "",
+            academics.ClassXiiStreamCode ?? "",
             personal.IsDifferentlyAbled ? "Yes" : "No",
             personal.IsEconomicallyWeaker ? "Yes" : "No",
             
@@ -475,6 +478,7 @@ public class ApplicantExportService : IApplicantExportService
         {
             "Application Number", "Full Name", "Email", "Mobile Number", "Date of Birth", "Gender", "Shift",
             "Name as per Admit Card", "Marital Status", "Blood Group", "Category", "Race/Tribe", "Religion",
+            "Denomination", "Class XII Board", "Class XII Stream",
             "Differently Abled", "Economically Weaker",
             "Address in Tura", "Home Address", "Same as Tura", "Aadhaar Number", "State",
             "Father Name", "Father Age", "Father Occupation", "Father Contact",
@@ -530,6 +534,9 @@ public class ApplicantExportService : IApplicantExportService
             worksheet.Cell(row, col++).Value = item.Category;
             worksheet.Cell(row, col++).Value = item.RaceOrTribe;
             worksheet.Cell(row, col++).Value = item.Religion;
+            worksheet.Cell(row, col++).Value = item.Denomination;
+            worksheet.Cell(row, col++).Value = item.ClassXiiBoardCode;
+            worksheet.Cell(row, col++).Value = item.ClassXiiStreamCode;
             worksheet.Cell(row, col++).Value = item.IsDifferentlyAbled;
             worksheet.Cell(row, col++).Value = item.IsEconomicallyWeaker;
             worksheet.Cell(row, col++).Value = item.AddressInTura;
@@ -626,6 +633,9 @@ public class ApplicantExportService : IApplicantExportService
         string Category,
         string RaceOrTribe,
         string Religion,
+        string Denomination,
+        string ClassXiiBoardCode,
+        string ClassXiiStreamCode,
         string IsDifferentlyAbled,
         string IsEconomicallyWeaker,
         

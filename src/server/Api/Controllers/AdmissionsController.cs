@@ -177,6 +177,7 @@ public class AdmissionsController(
         [FromQuery] decimal? maxClassXiiPercentage = null,
         [FromQuery] string? admissionPath = null,
         [FromQuery] string? admissionChannel = null,
+        [FromQuery] string? applicationLifecycleStage = null,
         CancellationToken cancellationToken = default)
     {
         var query = new ListOnlineApplicationsQuery(
@@ -194,7 +195,8 @@ public class AdmissionsController(
             minClassXiiPercentage,
             maxClassXiiPercentage,
             admissionPath,
-            admissionChannel);
+            admissionChannel,
+            applicationLifecycleStage);
 
         var result = await mediator.Send(query, cancellationToken);
 
@@ -215,6 +217,8 @@ public class AdmissionsController(
                     request.FormNumber,
                     request.StudentName,
                     request.MobileNumber,
+                    request.Shift,
+                    request.CuetApplied,
                     request.ApplicationFeeAmount),
                 cancellationToken);
 
@@ -1382,6 +1386,8 @@ public sealed record IssueOfflineAdmissionFormRequest(
     string FormNumber,
     string StudentName,
     string MobileNumber,
+    string Shift,
+    bool CuetApplied,
     decimal ApplicationFeeAmount);
 
 public sealed record ReceiveOfflineAdmissionFormRequest(string FormNumber, string MajorSubject);

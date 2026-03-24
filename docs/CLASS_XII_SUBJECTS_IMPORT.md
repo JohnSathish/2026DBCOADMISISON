@@ -34,10 +34,13 @@ cd scripts
 .\import-subjects-master-from-csv.ps1 `
   -CsvPath "..\docs\subjects_master_import_template.csv" `
   -BaseUrl "http://localhost:5227" `
-  -AdminToken "PASTE_JWT_HERE"
+  -LoginUsername "admin" `
+  -LoginPassword "Admin@123"
 ```
 
-You should see `importedRowCount` in the output. The script skips blank rows.
+Or pass `-AdminToken "eyJ..."` from a fresh login. You should see `importedRowCount` in the output. The script skips blank rows.
+
+**401 Unauthorized:** The import requires an **Admin** JWT. If you truncated `admissions` (including `AdminUsers`), **restart the API** so the seed recreates the default admin (`admin` / `Admin@123`), then log in again — old tokens are invalid.
 
 ### Option B — Swagger
 

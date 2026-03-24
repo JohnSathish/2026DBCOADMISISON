@@ -277,6 +277,13 @@ public sealed class GetApplicantDashboardQueryHandler : IRequestHandler<GetAppli
             return false;
         }
 
+        if (!string.IsNullOrWhiteSpace(personal.Religion)
+            && personal.Religion.Trim().Equals("Christian", StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(personal.Denomination))
+        {
+            return false;
+        }
+
         return !string.IsNullOrWhiteSpace(personal.NameAsPerAdmitCard)
                && !string.IsNullOrWhiteSpace(personal.DateOfBirth)
                && !string.IsNullOrWhiteSpace(personal.Gender)

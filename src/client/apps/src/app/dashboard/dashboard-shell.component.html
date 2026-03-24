@@ -1,136 +1,249 @@
-<div class="portal">
+<div class="applicant-shell relative grid min-h-screen bg-slate-100 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
+  @if (sidebarOpen()) {
+    <button
+      type="button"
+      class="applicant-shell__backdrop fixed inset-0 z-[18] bg-slate-900/40 lg:hidden"
+      aria-label="Close menu"
+      (click)="toggleSidebar()"
+    ></button>
+  }
+
   <button
     type="button"
-    class="portal__menu-toggle"
+    class="applicant-shell__fab fixed left-4 top-4 z-[22] flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-[#132f52] text-white shadow-md lg:hidden"
     (click)="toggleSidebar()"
     [attr.aria-expanded]="sidebarOpen()"
     aria-label="Toggle menu"
   >
-    <span class="portal__menu-icon"></span>
+    <span class="block h-0.5 w-[22px] bg-current shadow-[0_-6px_0_currentColor,0_6px_0_currentColor]"></span>
   </button>
-  <div class="portal__sidebar-backdrop" *ngIf="sidebarOpen()" (click)="toggleSidebar()"></div>
-  <aside class="portal__sidebar" [class.portal__sidebar--open]="sidebarOpen()">
-    <div class="portal__nav">
-      <a routerLink="/app/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="portal__nav-item">
-        <span class="portal__nav-icon">📋</span>
+
+  <aside
+    class="applicant-shell__sidebar fixed inset-y-0 left-0 z-20 flex w-[min(280px,88vw)] max-w-[280px] flex-col gap-4 overflow-y-auto border-r border-black/10 bg-[#132f52] px-4 pb-6 pt-5 text-white shadow-[4px_0_24px_rgba(0,0,0,0.2)] lg:static lg:z-0 lg:h-auto lg:max-h-none lg:w-full lg:max-w-none lg:shadow-none"
+    [class.applicant-shell__sidebar--closed]="!sidebarOpen()"
+  >
+    <div class="shrink-0 border-b border-white/10 pb-4 text-center">
+      <img
+        src="/vision-mission-1.png"
+        alt="Don Bosco College, Tura"
+        class="mx-auto mb-2 h-12 w-12 object-contain drop-shadow-md"
+        width="48"
+        height="48"
+        decoding="async"
+      />
+      <div class="space-y-0.5">
+        <div class="text-[0.8125rem] font-semibold tracking-wide text-white">Don Bosco College, Tura</div>
+        <div class="text-xs font-medium text-white/75">BoscoConnect ERP</div>
+        <div class="text-[0.6875rem] font-medium text-white/55" aria-hidden="true">v1.0</div>
+      </div>
+    </div>
+
+    <nav class="flex flex-col gap-1" aria-label="Main">
+      <a
+        routerLink="/app/dashboard"
+        routerLinkActive="applicant-shell__nav--active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="applicant-shell__nav-link flex items-center gap-3 rounded-xl px-4 py-2.5 text-[0.95rem] font-medium text-white transition hover:bg-white/10"
+        (click)="closeMobileSidebar()"
+      >
+        <iconify-icon icon="solar:clipboard-list-bold" class="text-lg shrink-0" aria-hidden="true"></iconify-icon>
         <span>Dashboard</span>
       </a>
-      <a routerLink="/app/profile/application" routerLinkActive="active" class="portal__nav-item">
-        <span class="portal__nav-icon">📝</span>
+      <a
+        routerLink="/app/profile/application"
+        routerLinkActive="applicant-shell__nav--active"
+        class="applicant-shell__nav-link flex items-center gap-3 rounded-xl px-4 py-2.5 text-[0.95rem] font-medium text-white transition hover:bg-white/10"
+        (click)="closeMobileSidebar()"
+      >
+        <iconify-icon icon="solar:document-text-bold" class="text-lg shrink-0" aria-hidden="true"></iconify-icon>
         <span>Application Form</span>
       </a>
-      <a routerLink="/app/dashboard" fragment="selection-status" class="portal__nav-item">
-        <span class="portal__nav-icon">📊</span>
+      <a
+        routerLink="/app/dashboard"
+        fragment="selection-status"
+        class="applicant-shell__nav-link flex items-center gap-3 rounded-xl px-4 py-2.5 text-[0.95rem] font-medium text-white transition hover:bg-white/10"
+        (click)="closeMobileSidebar()"
+      >
+        <iconify-icon icon="solar:chart-2-bold" class="text-lg shrink-0" aria-hidden="true"></iconify-icon>
         <span>Application Status</span>
       </a>
-      <a routerLink="/app/dashboard" fragment="payment" class="portal__nav-item">
-        <span class="portal__nav-icon">💳</span>
+      <a
+        routerLink="/app/dashboard"
+        fragment="payment"
+        class="applicant-shell__nav-link flex items-center gap-3 rounded-xl px-4 py-2.5 text-[0.95rem] font-medium text-white transition hover:bg-white/10"
+        (click)="closeMobileSidebar()"
+      >
+        <iconify-icon icon="solar:card-bold" class="text-lg shrink-0" aria-hidden="true"></iconify-icon>
         <span>Payments</span>
       </a>
-      <a routerLink="/app/documents" routerLinkActive="active" class="portal__nav-item">
-        <span class="portal__nav-icon">📄</span>
+      <a
+        routerLink="/app/documents"
+        routerLinkActive="applicant-shell__nav--active"
+        class="applicant-shell__nav-link flex items-center gap-3 rounded-xl px-4 py-2.5 text-[0.95rem] font-medium text-white transition hover:bg-white/10"
+        (click)="closeMobileSidebar()"
+      >
+        <iconify-icon icon="solar:document-bold" class="text-lg shrink-0" aria-hidden="true"></iconify-icon>
         <span>Documents</span>
       </a>
-      <a routerLink="/app/notifications" routerLinkActive="active" class="portal__nav-item">
-        <span class="portal__nav-icon">🔔</span>
-        <span>Notifications</span>
-        <span class="portal__nav-badge" *ngIf="notificationCount() > 0" aria-label="Notifications">{{
-          notificationCount() > 9 ? '9+' : notificationCount()
-        }}</span>
+      <a
+        routerLink="/app/notifications"
+        routerLinkActive="applicant-shell__nav--active"
+        class="applicant-shell__nav-link flex items-center gap-3 rounded-xl px-4 py-2.5 text-[0.95rem] font-medium text-white transition hover:bg-white/10"
+        (click)="closeMobileSidebar()"
+      >
+        <iconify-icon icon="solar:bell-bold" class="text-lg shrink-0" aria-hidden="true"></iconify-icon>
+        <span class="flex-1 text-left">Notifications</span>
+        @if (notificationCount() > 0) {
+          <span
+            class="inline-flex min-h-[1.35rem] min-w-[1.35rem] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[0.7rem] font-bold text-white"
+            aria-label="Unread notifications"
+          >
+            {{ notificationCount() > 9 ? '9+' : notificationCount() }}
+          </span>
+        }
       </a>
-      <a routerLink="/app/profile/summary" routerLinkActive="active" class="portal__nav-item">
-        <span class="portal__nav-icon">⚙️</span>
+      <a
+        routerLink="/app/profile/summary"
+        routerLinkActive="applicant-shell__nav--active"
+        class="applicant-shell__nav-link flex items-center gap-3 rounded-xl px-4 py-2.5 text-[0.95rem] font-medium text-white transition hover:bg-white/10"
+        (click)="closeMobileSidebar()"
+      >
+        <iconify-icon icon="solar:settings-bold" class="text-lg shrink-0" aria-hidden="true"></iconify-icon>
         <span>Settings</span>
       </a>
-    </div>
-    <div class="portal__steps-header" *ngIf="applicationSteps().length > 0">
-      <h2>Form Sections</h2>
-      <p>Jump to a section to update your details.</p>
-    </div>
-    <div class="portal__steps-list" *ngIf="applicationSteps().length > 0">
+    </nav>
+
+    @if (applicationSteps().length > 0) {
+      <div class="space-y-2 border-t border-white/10 pt-2 applicant-shell__form-sections">
+        <h2 class="text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-white/80">Form sections</h2>
+        <p class="text-xs leading-snug text-white/65">Jump to a section to update your details.</p>
+        <div class="flex max-h-[40vh] flex-col gap-2 overflow-y-auto pr-1">
+          @for (step of applicationSteps(); track step.index) {
+            <button
+              type="button"
+              class="applicant-shell__step-btn flex gap-3 rounded-xl border border-white/10 bg-black/15 p-3 text-left text-white transition hover:border-white/20 hover:bg-black/25"
+              [class.applicant-shell__step-btn--active]="isSidebarStepActive(step)"
+              [class.applicant-shell__step-btn--done]="isSidebarStepCompleted(step)"
+              (click)="navigateToApplicationStep(step); closeMobileSidebar()"
+            >
+              <span
+                class="applicant-shell__step-num inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
+                [class.applicant-shell__step-num--active]="isSidebarStepActive(step)"
+                [class.applicant-shell__step-num--done]="isSidebarStepCompleted(step)"
+              >
+                {{ step.index + 1 }}
+              </span>
+              <span class="flex min-w-0 flex-col gap-0.5">
+                <strong class="text-sm text-white">{{ step.title }}</strong>
+                <span class="text-xs text-white/65">{{ step.description }}</span>
+              </span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="mt-auto flex flex-col gap-2 border-t border-white/10 pt-4">
       <button
         type="button"
-        *ngFor="let step of applicationSteps()"
-        [class.portal__step--active]="isSidebarStepActive(step)"
-        [class.portal__step--completed]="isSidebarStepCompleted(step)"
-        (click)="navigateToApplicationStep(step)"
-      >
-        <span class="portal__step-number">{{ step.index + 1 }}</span>
-        <span class="portal__step-content">
-          <strong>{{ step.title }}</strong>
-          <span>{{ step.description }}</span>
-        </span>
-      </button>
-    </div>
-    <div class="portal__actions">
-      <button class="portal__password" type="button" (click)="openChangePassword()">
+        class="rounded-full bg-white/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/25"
+        (click)="openChangePassword()">
         Change Password
       </button>
-      <button class="portal__logout" type="button" (click)="logout()">Sign Out</button>
+      <button
+        type="button"
+        class="rounded-full bg-rose-500/25 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-500/40"
+        (click)="logout()">
+        Sign Out
+      </button>
     </div>
   </aside>
 
-  <section class="portal__content">
-    <header class="portal__header portal__header--sticky">
-      <div class="portal__header-text">
-        <h1>Admissions Portal</h1>
-        <p>Monitor your application progress and complete pending tasks.</p>
+  <section class="flex min-w-0 flex-col gap-4 bg-slate-50 px-4 pb-6 pt-14 sm:px-6 lg:px-8 lg:pt-6">
+    <header
+      class="sticky top-0 z-[16] -mx-4 flex flex-wrap items-center justify-between gap-4 rounded-b-2xl border border-slate-200/80 bg-white/90 px-4 py-4 shadow-sm backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+    >
+      <div class="min-w-[220px] flex-1">
+        <p class="mb-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Applicant</p>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">Admissions Portal</h1>
+        <p class="mt-1 max-w-[42ch] text-sm text-slate-600 sm:text-base">
+          Monitor your application progress and complete pending tasks.
+        </p>
       </div>
-      <div class="portal__header-profile" *ngIf="profile() as applicant">
-        <div class="portal__header-avatar" [class.portal__header-avatar--photo]="profilePhotoUrl()">
-          <ng-container *ngIf="profilePhotoUrl(); else headerInitials">
-            <img
-              [src]="profilePhotoUrl()"
-              [alt]="applicant.fullName || 'Applicant profile photo'"
-            />
-          </ng-container>
-          <ng-template #headerInitials>
-            {{ applicant.fullName.charAt(0) }}
-          </ng-template>
-        </div>
-        <div class="portal__header-details">
-          <span class="portal__header-name">{{ applicant.fullName }}</span>
-          <span class="portal__header-id">{{ applicant.uniqueId }}</span>
-        </div>
-        <div class="portal__dropdown-wrap">
+      @if (profile(); as applicant) {
+        <div class="flex min-w-0 flex-wrap items-center gap-3 sm:justify-end">
+          <div
+            class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-2xl font-semibold text-[#132f52] shadow-md ring-2 ring-white ring-offset-2 ring-offset-slate-50"
+            [class.bg-transparent]="profilePhotoUrl()"
+          >
+            @if (profilePhotoUrl(); as photoUrl) {
+              <img [src]="photoUrl" [alt]="applicant.fullName || 'Applicant profile photo'" class="h-full w-full object-cover" />
+            } @else {
+              {{ applicant.fullName.charAt(0) }}
+            }
+          </div>
+          <div class="min-w-0">
+            <div class="truncate font-semibold text-[#1b5e9d]">{{ applicant.fullName }}</div>
+            <div class="truncate text-sm text-slate-600">{{ applicant.uniqueId }}</div>
+          </div>
           <button
             type="button"
-            class="portal__dropdown-trigger"
-            (click)="toggleProfileDropdown()"
-            [attr.aria-expanded]="profileDropdownOpen()"
-            aria-haspopup="true"
+            class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1b5e9d]"
+            [cdkMenuTriggerFor]="accountMenu"
             aria-label="Account menu"
           >
-            ▼
+            <iconify-icon icon="solar:alt-arrow-down-linear" class="text-base" aria-hidden="true"></iconify-icon>
           </button>
-          <div class="portal__dropdown" *ngIf="profileDropdownOpen()">
-            <a routerLink="/app/profile/summary" class="portal__dropdown-item" (click)="closeProfileDropdown()">Profile</a>
-            <button type="button" class="portal__dropdown-item" (click)="openChangePassword(); closeProfileDropdown()">Change Password</button>
-            <button type="button" class="portal__dropdown-item portal__dropdown-item--danger" (click)="logout(); closeProfileDropdown()">Logout</button>
-          </div>
+          <ng-template #accountMenu>
+            <div cdkMenu class="applicant-account-menu">
+              <a routerLink="/app/profile/summary" cdkMenuItem (click)="closeMobileSidebar()">Profile</a>
+              <button type="button" cdkMenuItem (click)="openChangePassword()">Change Password</button>
+              <button type="button" cdkMenuItem class="applicant-account-menu__danger" (click)="logout()">Logout</button>
+            </div>
+          </ng-template>
         </div>
-      </div>
+      }
     </header>
-    <div class="portal__status portal__status--loading" *ngIf="loading()">
-      Loading your dashboard…
-    </div>
-    <div class="portal__status portal__status--error" *ngIf="!loading() && error()">
-      {{ error() }}
-    </div>
-    <div class="portal__banner" *ngIf="passwordUpdated">
-      Password updated successfully.
-    </div>
-    <div class="portal__main" *ngIf="!loading() && !error()">
-      <router-outlet></router-outlet>
-    </div>
+
+    @if (loading()) {
+      <div class="rounded-xl border border-sky-200/80 bg-sky-50 px-4 py-3 font-medium text-[#1b5e9d]">
+        Loading your dashboard…
+      </div>
+    }
+    @if (!loading() && error()) {
+      <div class="rounded-xl border border-red-200/90 bg-red-50 px-4 py-3 font-medium text-red-900">
+        {{ error() }}
+      </div>
+    }
+    @if (passwordUpdated) {
+      <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-emerald-900">
+        Password updated successfully.
+      </div>
+    }
+    @if (!loading() && !error()) {
+      <div class="min-w-0 w-full max-w-6xl flex-1 self-center">
+        <router-outlet></router-outlet>
+      </div>
+    }
   </section>
 
-  <div class="portal__overlay" *ngIf="changePasswordOpen">
-    <div class="portal__dialog" role="dialog" aria-modal="true" aria-label="Change password">
-      <app-change-password
-        (closed)="handlePasswordClosed()"
-        (passwordUpdated)="handlePasswordUpdated()"
-      ></app-change-password>
+  @if (changePasswordOpen) {
+    <div
+      class="fixed inset-0 z-[60] grid place-items-center bg-slate-950/65 p-4 backdrop-blur-sm"
+      role="presentation"
+    >
+      <div
+        class="w-full max-w-[420px]"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Change password"
+        (click)="$event.stopPropagation()"
+      >
+        <app-change-password
+          (closed)="handlePasswordClosed()"
+          (passwordUpdated)="handlePasswordUpdated()"
+        ></app-change-password>
+      </div>
     </div>
-  </div>
+  }
 </div>

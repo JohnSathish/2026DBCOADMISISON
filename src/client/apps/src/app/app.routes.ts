@@ -29,27 +29,11 @@ export const appRoutes: Route[] = [
     loadChildren: () =>
       import('./admin/admin.routes').then((m) => m.adminRoutes),
   },
+  /** Legacy Preskool URLs → canonical admin dashboard (bookmark-safe). */
   {
     path: 'preskool',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./admin/preskool-shell/preskool-shell.component').then(
-        (m) => m.PreskoolShellComponent
-      ),
-    children: [
-      {
-        path: '',
-        pathMatch: 'full',
-        redirectTo: 'dashboard',
-      },
-      {
-        path: 'dashboard',
-        loadComponent: () =>
-          import('./admin/dashboard/admin-dashboard-preskool-standalone.component').then(
-            (m) => m.AdminDashboardPreskoolStandaloneComponent
-          ),
-      },
-    ],
+    redirectTo: '/admin/dashboard',
+    pathMatch: 'prefix',
   },
   {
     path: 'app',

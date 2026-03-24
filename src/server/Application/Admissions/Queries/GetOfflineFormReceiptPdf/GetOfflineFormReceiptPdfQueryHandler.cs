@@ -1,3 +1,4 @@
+using ERP.Application.Admissions;
 using ERP.Application.Admissions.Interfaces;
 using ERP.Domain.Admissions.Entities;
 using MediatR;
@@ -34,9 +35,10 @@ public sealed class GetOfflineFormReceiptPdfQueryHandler
         var account = await _accountRepository.GetByUniqueIdAsync(formNumber, cancellationToken);
         if (account is not null && account.AdmissionChannel == AdmissionChannel.Offline)
         {
-            var major = account.OfflineIssuedMajorSubject ?? account.Shift;
+            var major = account.OfflineIssuedMajorSubject;
             var issuedOn = account.PaymentCompletedOnUtc ?? account.CreatedOnUtc;
             var amount = account.PaymentAmount ?? 0m;
+            var shiftDisplay = OfflineAdmissionShift.ToDisplayLabel(account.Shift);
 
             var (content, fileName) = await _receiptPdf.GenerateAsync(
                 formNumber,
@@ -45,6 +47,8 @@ public sealed class GetOfflineFormReceiptPdfQueryHandler
                 amount,
                 issuedOn,
                 account.MobileNumber,
+                shiftDisplay,
+                account.CuetAppliedAtIssue,
                 cancellationToken);
 
             return new OfflineFormReceiptPdfQueryResult(content, fileName);
@@ -53,6 +57,11 @@ public sealed class GetOfflineFormReceiptPdfQueryHandler
         var issuance = await _issuanceRepository.GetByFormNumberAsync(formNumber, cancellationToken);
         if (issuance is not null && issuance.ApplicantAccountId is null)
         {
+            var shiftDisplay = string.IsNullOrWhiteSpace(issuance.Shift)
+                ? "—"
+                : OfflineAdmissionShift.ToDisplayLabel(
+                    OfflineAdmissionShift.TryNormalize(issuance.Shift) ?? issuance.Shift.Trim());
+
             var (content, fileName) = await _receiptPdf.GenerateAsync(
                 formNumber,
                 issuance.StudentName,
@@ -60,6 +69,8 @@ public sealed class GetOfflineFormReceiptPdfQueryHandler
                 issuance.ApplicationFeeAmount,
                 issuance.IssuedOnUtc,
                 mobileNumberForReceipt: null,
+                shiftDisplay,
+                issuance.CuetApplied,
                 cancellationToken);
 
             return new OfflineFormReceiptPdfQueryResult(content, fileName);

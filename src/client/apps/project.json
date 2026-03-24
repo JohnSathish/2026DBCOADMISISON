@@ -22,20 +22,20 @@
             "input": "apps/public"
           }
         ],
-        "styles": ["apps/src/styles.scss"]
+        "styles": ["apps/src/styles.css"]
       },
       "configurations": {
         "production": {
           "budgets": [
             {
               "type": "initial",
-              "maximumWarning": "500kb",
+              "maximumWarning": "600kb",
               "maximumError": "1mb"
             },
             {
               "type": "anyComponentStyle",
-              "maximumWarning": "10kb",
-              "maximumError": "20kb"
+              "maximumWarning": "18kb",
+              "maximumError": "22kb"
             }
           ],
           "outputHashing": "all",

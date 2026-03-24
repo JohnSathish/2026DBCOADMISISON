@@ -8,6 +8,8 @@ export interface CreateOrderResponse {
   amount: number;
   currency: string;
   keyId: string;
+  /** Absolute URL for Razorpay checkout header logo; optional. */
+  checkoutLogoUrl?: string | null;
 }
 
 export interface VerifyPaymentRequest {

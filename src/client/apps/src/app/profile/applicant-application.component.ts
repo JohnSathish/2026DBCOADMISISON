@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  CUSTOM_ELEMENTS_SCHEMA,
   DestroyRef,
   OnDestroy,
   OnInit,
@@ -32,6 +33,7 @@ import {
   ContactInformation,
   CuetDetail,
   CoursePreferences,
+  draftForSubmitRequest,
   FileAttachment,
   ParentOrGuardian,
   PersonalInformation,
@@ -261,6 +263,94 @@ const SHIFT_SUPPLEMENTS: Record<ShiftCode, {
   },
 };
 
+/** Context for MDC 111 / 115 / 119 eligibility (Class XII + major). */
+interface MdcEligibilityContext {
+  classXiiSubjectNames: string[];
+  classXiiStreamCode: string;
+  majorSubject: string;
+}
+
+type MdcOption = Readonly<{
+  value: string;
+  label: string;
+  disabled?: boolean;
+  disabledReason?: string;
+}>;
+
+function normalizeAcademicSubjectToken(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function subjectMatchesKeyword(normalizedSubject: string, keyword: string): boolean {
+  const k = normalizeAcademicSubjectToken(keyword);
+  if (!k || !normalizedSubject) {
+    return false;
+  }
+  return normalizedSubject === k || normalizedSubject.includes(k);
+}
+
+function hasScienceBackground(streamCode: string, normalizedSubjects: string[]): boolean {
+  const sc = (streamCode ?? '').trim().toUpperCase();
+  if (sc === 'SCIENCE') {
+    return true;
+  }
+  const scienceKeywords = [
+    'physics',
+    'chemistry',
+    'biology',
+    'botany',
+    'zoology',
+    'biotechnology',
+    'microbiology',
+    'environmental science',
+    'life science',
+  ];
+  for (const n of normalizedSubjects) {
+    for (const k of scienceKeywords) {
+      if (subjectMatchesKeyword(n, k)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/** Returns a user-facing reason when the chosen MDC is not allowed, or null if allowed. */
+function getMdcIneligibilityReason(mdcValue: string, ctx: MdcEligibilityContext): string | null {
+  const v = (mdcValue ?? '').trim();
+  if (!v) {
+    return null;
+  }
+  const subjects = ctx.classXiiSubjectNames
+    .map((s) => normalizeAcademicSubjectToken(s))
+    .filter(Boolean);
+  const stream = (ctx.classXiiStreamCode ?? '').trim();
+  const major = (ctx.majorSubject ?? '').trim().toUpperCase();
+
+  if (v.startsWith('MDC 111')) {
+    const blocked = subjects.some(
+      (s) => subjectMatchesKeyword(s, 'geography') || subjectMatchesKeyword(s, 'sociology')
+    );
+    if (blocked) {
+      return 'This MDC is not available because you studied Geography and/or Sociology in Class XII.';
+    }
+  }
+  if (v.startsWith('MDC 119')) {
+    if (subjects.some((s) => subjectMatchesKeyword(s, 'philosophy'))) {
+      return 'This MDC is not available because you studied Philosophy in Class XII.';
+    }
+    if (major === 'PHILOSOPHY') {
+      return 'This MDC is not available when Philosophy is your major subject.';
+    }
+  }
+  if (v.startsWith('MDC 115')) {
+    if (hasScienceBackground(stream, subjects)) {
+      return 'This MDC is not available for Science stream students or those with Class XII Science subjects (e.g. Physics, Chemistry, Biology).';
+    }
+  }
+  return null;
+}
+
 const DEFAULT_VAC = { value: 'VAC 140', label: 'VAC 140 — ENVIRONMENT STUDIES' };
 
 interface Step {
@@ -275,8 +365,12 @@ interface Step {
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   providers: [ApplicantApplicationStore],
   templateUrl: './applicant-application.component.html',
-  styleUrls: ['./applicant-application.component.scss'],
+  styleUrls: [
+    './applicant-application.component.scss',
+    './applicant-application-part2.scss',
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class ApplicantApplicationComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
@@ -342,6 +436,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     category: ['', Validators.required],
     raceOrTribe: ['', Validators.required],
     religion: ['', Validators.required],
+    denomination: [''],
     isDifferentlyAbled: [false],
     isEconomicallyWeaker: [false],
   });
@@ -373,7 +468,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     sameAsTura: [false],
     aadhaarNumber: ['', [Validators.required, this.aadhaarValidator]],
     state: ['', Validators.required],
-    email: ['', [Validators.required]], // Email validation temporarily disabled for testing
+    email: ['', [Validators.required, Validators.email]],
   });
 
   private nameValidator = (control: AbstractControl): { [key: string]: any } | null => {
@@ -550,10 +645,29 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     if (board === 'OTHER') {
       return null;
     }
+    const mode = g.get('entryMode')?.value as 'master' | 'manual' | undefined;
     const subj = g.get('subject')?.value?.toString().trim() ?? '';
     const marks = g.get('marks')?.value;
     const id = g.get('subjectMasterId')?.value?.toString().trim() ?? '';
-    const rowHasData = !!(subj || (marks !== '' && marks != null) || id);
+    const marksStr = marks === null || marks === undefined ? '' : String(marks).trim();
+    const marksInvalid = !!g.get('marks')?.errors?.['classXiiMarksInvalid'];
+
+    if (mode === 'manual') {
+      const hasSubj = !!subj;
+      const hasMarks = !!marksStr;
+      if (!hasSubj && !hasMarks) {
+        return null;
+      }
+      if (hasMarks && !hasSubj) {
+        return { manualSubjectRequired: { message: 'Enter subject name (not listed).' } };
+      }
+      if (hasSubj && (!marksStr || marksInvalid)) {
+        return { manualMarksRequired: { message: 'Enter marks between 0 and 100.' } };
+      }
+      return null;
+    }
+
+    const rowHasData = !!(subj || marksStr || id);
     if (!rowHasData) {
       return null;
     }
@@ -563,7 +677,27 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     return null;
   };
 
-  /** At least five complete rows (manual for OTHER, catalog id + marks for standard boards). */
+  /** At least five complete core rows (indices 0–4); additional rows do not count toward the minimum. */
+  /**
+   * Required + non-empty base64 payload. Plain `Validators.required` treats any object as set, so
+   * `{ fileName, data: '' }` (e.g. stale draft) incorrectly passed validation while the file input stayed empty.
+   */
+  private readonly attachmentUploadValidator: ValidatorFn = (control: AbstractControl) => {
+    const v = control.value as FileAttachment | null | undefined;
+    if (v === null || v === undefined) {
+      return { required: true };
+    }
+    const data = (v.data ?? '').trim();
+    if (!data) {
+      return {
+        attachmentEmpty: {
+          message: 'This document has no file data. Please choose the file again.',
+        },
+      };
+    }
+    return null;
+  };
+
   private readonly classXiiSubjectsArrayMinValidator: ValidatorFn = (control: AbstractControl) => {
     const fa = control as FormArray<FormGroup>;
     const board = (this.academicsForm?.get('classXiiBoardCode')?.value ?? '').toString().trim();
@@ -571,13 +705,15 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       return null;
     }
     let complete = 0;
-    for (const c of fa.controls) {
-      const g = c as FormGroup;
+    const n = Math.min(5, fa.length);
+    for (let i = 0; i < n; i++) {
+      const g = fa.at(i) as FormGroup;
       const subj = g.get('subject')?.value?.toString().trim() ?? '';
       const marksRaw = g.get('marks')?.value;
       const marks =
         marksRaw === null || marksRaw === undefined ? '' : String(marksRaw).trim();
       const id = g.get('subjectMasterId')?.value?.toString().trim() ?? '';
+      const mode = g.get('entryMode')?.value as 'master' | 'manual' | undefined;
       if (!marks || g.get('marks')?.errors?.['classXiiMarksInvalid']) {
         continue;
       }
@@ -585,7 +721,9 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
         if (subj) {
           complete++;
         }
-      } else if (id) {
+      } else if (mode === 'master' && id) {
+        complete++;
+      } else if (mode === 'manual' && subj) {
         complete++;
       }
     }
@@ -595,6 +733,16 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       };
     }
     return null;
+  };
+
+  private readonly mdcEligibilityValidator: ValidatorFn = (control: AbstractControl) => {
+    const mdc = (control.value as string)?.trim() ?? '';
+    if (!mdc) {
+      return null;
+    }
+    const ctx = this.buildMdcEligibilityContext();
+    const reason = getMdcIneligibilityReason(mdc, ctx);
+    return reason ? { mdcIneligible: { message: reason } } : null;
   };
 
   readonly contactsForm = this.fb.group({
@@ -610,11 +758,10 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     classXiiSubjects: this.fb.array(this.createDefaultClassXiiRows(), [this.classXiiSubjectsArrayMinValidator]),
     boardExamination: this.fb.group({
       rollNumber: ['', [Validators.required, this.numericValidator]],
-      year: ['', [Validators.required, this.numericValidator]],
+      year: ['', Validators.required],
       totalMarks: ['', [Validators.required, this.numericValidator]],
       percentage: ['', [Validators.required, this.percentageValidator]],
       division: ['', Validators.required],
-      boardName: ['', Validators.required],
       registrationType: ['', Validators.required],
     }),
     cuet: this.fb.group({
@@ -629,15 +776,15 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
      shift: ['', Validators.required],
      majorSubject: ['', Validators.required],
      minorSubject: ['', Validators.required],
-     multidisciplinaryChoice: ['', Validators.required],
+     multidisciplinaryChoice: ['', [Validators.required, this.mdcEligibilityValidator]],
      abilityEnhancementChoice: ['', Validators.required],
      skillEnhancementChoice: ['', Validators.required],
      valueAddedChoice: [''],
    });
 
   readonly uploadsForm = this.fb.group({
-    stdXMarksheet: this.fb.control<FileAttachment | null>(null, Validators.required),
-    stdXIIMarksheet: this.fb.control<FileAttachment | null>(null, Validators.required),
+    stdXMarksheet: this.fb.control<FileAttachment | null>(null, this.attachmentUploadValidator),
+    stdXIIMarksheet: this.fb.control<FileAttachment | null>(null, this.attachmentUploadValidator),
     cuetMarksheet: this.fb.control<FileAttachment | null>({ value: null, disabled: true }),
     differentlyAbledProof: this.fb.control<FileAttachment | null>({ value: null, disabled: true }),
     economicallyWeakerProof: this.fb.control<FileAttachment | null>({ value: null, disabled: true }),
@@ -752,10 +899,20 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     'West Bengal',
   ];
   readonly bloodGroupOptions = ['Not Checked', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  readonly religionOptions = [
+    'Hindu',
+    'Muslim',
+    'Christian',
+    'Sikh',
+    'Buddhist',
+    'Jain',
+    'Other',
+  ] as const;
+  readonly denominationOptions = ['Catholic', 'Baptist', 'Other'] as const;
   readonly availableMajors = signal<string[]>([]);
   readonly availableMinors = signal<string[]>([]);
   readonly currentShiftOption = signal<ShiftOption | null>(null);
-  readonly availableMdc = signal<OptionGroup>([]);
+  readonly availableMdc = signal<MdcOption[]>([]);
   readonly availableAec = signal<OptionGroup>([]);
   readonly availableSec = signal<OptionGroup>([]);
   readonly defaultVac = DEFAULT_VAC;
@@ -794,7 +951,9 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     this.attachDraftEffects();
     this.setupFormSubmissionPrevention();
     this.setupConditionalUploads();
+    this.setupReligionDenominationListener();
     (this.contactsForm.get('localGuardian') as FormGroup)?.disable({ emitEvent: false });
+    this.syncDenominationWithReligion(false);
   }
 
   private setupFormSubmissionPrevention(): void {
@@ -887,7 +1046,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     this.setupCuetFieldsToggle();
     this.setupClassXiiBoardStreamListeners();
     this.applyClassXiiStreamValidators(this.academicsForm.get('classXiiBoardCode')?.value);
-
+    
     // Load payment status
     try {
       await this.loadPaymentStatus();
@@ -905,6 +1064,41 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     ) {
       this.navigation.setCurrentIndex(preservedStep);
     }
+  }
+
+  private setupReligionDenominationListener(): void {
+    this.personalForm
+      .get('religion')
+      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.syncDenominationWithReligion(true);
+        this.cdr.markForCheck();
+      });
+  }
+
+  /**
+   * Clears denomination when religion is not Christian (when `clearDenomWhenNotChristian`)
+   * and applies required validators only for Christian.
+   */
+  private syncDenominationWithReligion(clearDenomWhenNotChristian: boolean): void {
+    const r = (this.personalForm.get('religion')?.value ?? '').toString().trim();
+    const denomCtrl = this.personalForm.get('denomination');
+    if (!denomCtrl) {
+      return;
+    }
+    if (r !== 'Christian') {
+      if (clearDenomWhenNotChristian) {
+        denomCtrl.setValue('', { emitEvent: false });
+      }
+      denomCtrl.clearValidators();
+    } else {
+      denomCtrl.setValidators([Validators.required]);
+    }
+    denomCtrl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  isReligionChristian(): boolean {
+    return (this.personalForm.get('religion')?.value ?? '').toString().trim() === 'Christian';
   }
 
   private setupCuetFieldsToggle(): void {
@@ -971,7 +1165,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     if (!cuetMarksheetControl) return;
 
     if (enabled) {
-      cuetMarksheetControl.setValidators([Validators.required]);
+      cuetMarksheetControl.setValidators([this.attachmentUploadValidator]);
       cuetMarksheetControl.enable({ emitEvent: false });
     } else {
       cuetMarksheetControl.clearValidators();
@@ -1028,7 +1222,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     }
   }
 
-  async saveDraft(): Promise<void> {
+  async saveDraft(options?: { silent?: boolean }): Promise<void> {
     // Preserve current step before saving
     const currentStep = this.currentStepIndex();
     
@@ -1055,7 +1249,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       const payload = this.toDraft();
       // Debug: Log the payload to verify totalMarks is included
       console.log('Saving draft with totalMarks:', payload.academics.boardExamination.totalMarks);
-      await this.applicationStore.saveDraft(payload);
+      await this.applicationStore.saveDraft(payload, options);
       this.showJustSaved.set(true);
       setTimeout(() => this.showJustSaved.set(false), 3000);
     } catch (error) {
@@ -1107,7 +1301,9 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     payload.coursesLocked = true;
     this.coursesLocked = true;
     this.applyCourseLock();
-    const submissionResult = await this.applicationStore.submitApplication(payload);
+    // Persist latest uploads so submit can omit heavy base64 (server merges from draft).
+    await this.saveDraft({ silent: true });
+    const submissionResult = await this.applicationStore.submitApplication(draftForSubmitRequest(payload));
     if (!submissionResult) {
       this.coursesLocked = false;
       this.applyCourseLock();
@@ -1158,6 +1354,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
         },
         themeColor: '#1b5e9d',
         onDismiss: () => this.isPaymentProcessing.set(false),
+        checkoutLogoUrl: orderResponse.checkoutLogoUrl,
       });
 
       const razorpay = new (window as any).Razorpay(options);
@@ -1333,7 +1530,8 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     // Re-submit to get PDF after payment
     const payload = this.toDraft();
     payload.coursesLocked = true;
-    const result = await this.applicationStore.submitApplication(payload);
+    await this.saveDraft({ silent: true });
+    const result = await this.applicationStore.submitApplication(draftForSubmitRequest(payload));
     if (result) {
       this.setSubmissionPdf(result);
     }
@@ -1353,6 +1551,42 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       document.body.appendChild(script);
     });
   }
+  /** Drop attachments with missing base64 so validation matches the empty file input. */
+  private sanitizeUploadSection(uploads: UploadSection): UploadSection {
+    const pick = (a: FileAttachment | null | undefined): FileAttachment | null => {
+      if (!a || typeof a !== 'object') {
+        return null;
+      }
+      const data = (a.data ?? '').trim();
+      if (!data) {
+        return null;
+      }
+      return {
+        fileName: a.fileName ?? 'document',
+        contentType: a.contentType || 'application/octet-stream',
+        data,
+      };
+    };
+    return {
+      stdXMarksheet: pick(uploads.stdXMarksheet),
+      stdXIIMarksheet: pick(uploads.stdXIIMarksheet),
+      cuetMarksheet: pick(uploads.cuetMarksheet),
+      differentlyAbledProof: pick(uploads.differentlyAbledProof),
+      economicallyWeakerProof: pick(uploads.economicallyWeakerProof),
+    };
+  }
+
+  /** Faster than readAsDataURL for large images (no data: URL prefix / extra copy). */
+  private arrayBufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    const chunk = 0x8000;
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk) as unknown as number[]);
+    }
+    return btoa(binary);
+  }
+
   onFileSelected(controlName: keyof UploadSection, event: Event): void {
     // CRITICAL: Prevent form submission but allow file selection
     // DO NOT preventDefault on change event - it prevents file selection!
@@ -1419,51 +1653,37 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       return;
     }
     
-    // Process file asynchronously to avoid blocking
-    try {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const result = reader.result as string;
-          const data = result.includes(',') ? result.split(',')[1] : result;
-          const attachment: FileAttachment = {
-            fileName: file.name,
-            contentType: file.type,
-            data,
-          };
-          // Preserve current step before updating form
-          const currentStep = this.currentStepIndex();
-          
-          // Update form control without triggering full form validation
-          control.setValue(attachment, { emitEvent: false, onlySelf: true });
-          control.markAsDirty();
-          control.markAsTouched();
-          
-          // Update parent form validity without triggering validation errors display
-          control.updateValueAndValidity({ emitEvent: false, onlySelf: true });
-          
-          // Ensure step is preserved after file upload
-          if (this.currentStepIndex() !== currentStep) {
-            this.navigation.setCurrentIndex(currentStep);
-          }
-          
-          this.toast.show(`File "${file.name}" uploaded successfully.`, 'success');
-        } catch (error) {
-          console.error('Error processing file:', error);
-          this.toast.show('Failed to process file. Please try again.', 'error');
-          input.value = '';
+    void this.readFileAsAttachment(file)
+      .then((attachment) => {
+        const currentStep = this.currentStepIndex();
+        control.setValue(attachment, { emitEvent: false });
+        control.markAsDirty();
+        control.markAsTouched();
+        control.updateValueAndValidity({ emitEvent: false });
+        this.uploadsForm.updateValueAndValidity({ emitEvent: false });
+        this.cdr.markForCheck();
+
+        if (this.currentStepIndex() !== currentStep) {
+          this.navigation.setCurrentIndex(currentStep);
         }
-      };
-      reader.onerror = () => {
-        this.toast.show('Failed to read file. Please try again.', 'error');
+
+        this.toast.show(`File "${file.name}" uploaded successfully.`, 'success');
+      })
+      .catch((error) => {
+        console.error('Error processing file:', error);
+        this.toast.show('Failed to process file. Please try again.', 'error');
         input.value = '';
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Error reading file:', error);
-      this.toast.show('Failed to read file. Please try again.', 'error');
-      input.value = '';
-    }
+      });
+  }
+
+  private async readFileAsAttachment(file: File): Promise<FileAttachment> {
+    const buffer = await file.arrayBuffer();
+    const data = this.arrayBufferToBase64(buffer);
+    return {
+      fileName: file.name,
+      contentType: file.type || 'application/octet-stream',
+      data,
+    };
   }
 
   removeAttachment(controlName: keyof UploadSection): void {
@@ -1474,10 +1694,21 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     control.setValue(null);
     control.markAsDirty();
     control.markAsTouched();
+    control.updateValueAndValidity({ emitEvent: false });
+    this.uploadsForm.updateValueAndValidity({ emitEvent: false });
+    this.cdr.markForCheck();
   }
 
   getAttachment(controlName: keyof UploadSection): FileAttachment | null {
     return (this.uploadsForm.get(controlName)?.value as FileAttachment | null) ?? null;
+  }
+
+  /** Display label for an uploaded file (normalizes legacy DBCT25 in stored names to DBCT26). */
+  displayUploadFileName(fileName: string | undefined | null): string {
+    if (!fileName) {
+      return '';
+    }
+    return fileName.replace(/DBCT25/gi, 'DBCT26');
   }
 
   downloadAttachment(controlName: keyof UploadSection): void {
@@ -1620,6 +1851,46 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     return '';
   }
 
+  private buildMdcEligibilityContext(): MdcEligibilityContext {
+    const subjects = this.buildClassXiiSubjectsPayload()
+      .map((r) => r.subject)
+      .filter((s) => !!s?.trim());
+    const stream = (this.academicsForm.get('classXiiStreamCode')?.value ?? '').toString().trim();
+    const major = (this.coursesForm.get('majorSubject')?.value ?? '').toString().trim();
+    return {
+      classXiiSubjectNames: subjects,
+      classXiiStreamCode: stream,
+      majorSubject: major,
+    };
+  }
+
+  private enrichMdcOptionsWithEligibility(mdcRaw: OptionGroup): MdcOption[] {
+    const ctx = this.buildMdcEligibilityContext();
+    return mdcRaw.map((opt) => {
+      const reason = getMdcIneligibilityReason(opt.value, ctx);
+      if (reason) {
+        return { ...opt, disabled: true, disabledReason: reason };
+      }
+      return { ...opt };
+    });
+  }
+
+  /** Re-run MDC eligibility when Class XII or major changes (shift unchanged). */
+  private refreshMdcEligibilityFromCurrentShift(): void {
+    const shift = this.toShiftCode(this.coursesForm.get('shift')?.value);
+    const supplements = shift ? SHIFT_SUPPLEMENTS[shift] : null;
+    const mdcRaw = supplements?.mdc ?? [];
+    const mdcEnriched = this.enrichMdcOptionsWithEligibility(mdcRaw);
+    this.availableMdc.set(mdcEnriched);
+    this.syncSupplementControl(
+      this.coursesForm.get('multidisciplinaryChoice') as FormControl | null,
+      mdcEnriched,
+      true
+    );
+    this.coursesForm.get('multidisciplinaryChoice')?.updateValueAndValidity({ emitEvent: false });
+    this.cdr.markForCheck();
+  }
+
   private updateSupplementOptions(shift: ShiftCode | '', preserveSelection: boolean): void {
     const supplements = shift ? SHIFT_SUPPLEMENTS[shift] : null;
 
@@ -1627,13 +1898,14 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     const aecOptions = supplements?.aec ?? [];
     const secOptions = supplements?.sec ?? [];
 
-    this.availableMdc.set(mdcOptions);
+    const mdcEnriched = this.enrichMdcOptionsWithEligibility(mdcOptions);
+    this.availableMdc.set(mdcEnriched);
     this.availableAec.set(aecOptions);
     this.availableSec.set(secOptions);
 
     this.syncSupplementControl(
       this.coursesForm.get('multidisciplinaryChoice') as FormControl | null,
-      mdcOptions,
+      mdcEnriched,
       preserveSelection
     );
 
@@ -1652,7 +1924,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
 
   private syncSupplementControl(
     control: FormControl | null,
-    options: OptionGroup,
+    options: ReadonlyArray<{ value: string; label: string; disabled?: boolean }>,
     preserveSelection: boolean
   ): void {
     if (!control) {
@@ -1667,7 +1939,10 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       control.enable({ emitEvent: false });
     }
 
-    if (!preserveSelection || !options.some((option) => option.value === current)) {
+    const match = options.find((option) => option.value === current);
+    const selectionAllowed = preserveSelection && !!match && !match.disabled;
+
+    if (!selectionAllowed) {
       control.setValue('', { emitEvent: false });
     }
   }
@@ -1677,7 +1952,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       return;
     }
     if (enabled) {
-      control.setValidators([Validators.required]);
+      control.setValidators([this.attachmentUploadValidator]);
       control.enable({ emitEvent: false });
     } else {
       control.clearValidators();
@@ -1862,23 +2137,93 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
   }
 
   private createDefaultClassXiiRows(): FormGroup[] {
-    return Array.from({ length: 5 }, () => this.createClassXiiRowGroup(false));
+    return Array.from({ length: 5 }, (_, i) => this.createClassXiiRowGroupForIndex(i));
   }
 
-  /** Rows 6+ are optional until filled; first five rows are required for the minimum-five rule. */
-  private createClassXiiRowGroup(optionalRow: boolean): FormGroup {
-    const subjectValidators = optionalRow ? [] : [Validators.required];
-    const marksValidators = optionalRow
-      ? [this.classXiiMarksValidator]
-      : [Validators.required, this.classXiiMarksValidator];
+  private createClassXiiRowGroupShell(): FormGroup {
     return this.fb.group(
       {
+        entryMode: ['master' as 'master' | 'manual'],
         subjectMasterId: [''],
-        subject: ['', subjectValidators],
-        marks: ['', marksValidators],
+        subject: [''],
+        marks: [''],
       },
       { validators: this.classXiiRowCrossValidator }
     );
+  }
+
+  private computeClassXiiEntryMode(rowIndex: number): 'master' | 'manual' {
+    const board = (this.academicsForm?.get('classXiiBoardCode')?.value ?? '').toString().trim();
+    if (board === 'OTHER' || rowIndex >= 5) {
+      return 'manual';
+    }
+    return 'master';
+  }
+
+  private resolveEntryModeForLoadedRow(
+    r: ClassXiiSubjectRow,
+    index: number,
+    board: string
+  ): 'master' | 'manual' {
+    if (board === 'OTHER') {
+      return 'manual';
+    }
+    if (index >= 5) {
+      return 'manual';
+    }
+    const em = r.entryMode?.toString().trim().toLowerCase();
+    if (em === 'manual') {
+      return 'manual';
+    }
+    if (em === 'dropdown') {
+      return 'master';
+    }
+    const id = r.subjectMasterId?.toString().trim() ?? '';
+    if (!id && (r.subject?.trim() ?? '')) {
+      return 'manual';
+    }
+    return 'master';
+  }
+
+  private applyClassXiiRowFieldValidators(g: FormGroup, index: number): void {
+    const board = (this.academicsForm?.get('classXiiBoardCode')?.value ?? '').toString().trim();
+    const isOther = board === 'OTHER';
+    const isAdditional = index >= 5;
+
+    const subjectCtrl = g.get('subject');
+    const marksCtrl = g.get('marks');
+
+    if (isOther && !isAdditional) {
+      subjectCtrl?.setValidators([Validators.required]);
+    } else {
+      subjectCtrl?.clearValidators();
+    }
+    subjectCtrl?.updateValueAndValidity({ emitEvent: false });
+
+    if (!isAdditional) {
+      marksCtrl?.setValidators([Validators.required, this.classXiiMarksValidator]);
+    } else {
+      marksCtrl?.setValidators([this.classXiiMarksValidator]);
+    }
+    marksCtrl?.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private initClassXiiRowAtIndex(g: FormGroup, index: number): void {
+    g.get('entryMode')?.setValue(this.computeClassXiiEntryMode(index), { emitEvent: false });
+    this.applyClassXiiRowFieldValidators(g, index);
+  }
+
+  /** Row index drives core (0–4) vs additional (5+), board drives master vs manual. */
+  private createClassXiiRowGroupForIndex(index: number): FormGroup {
+    const g = this.createClassXiiRowGroupShell();
+    this.initClassXiiRowAtIndex(g, index);
+    return g;
+  }
+
+  private syncClassXiiEntryModesAndValidators(): void {
+    this.classXiiSubjectsArray.controls.forEach((ctrl, i) => {
+      this.initClassXiiRowAtIndex(ctrl as FormGroup, i);
+    });
   }
 
   isClassXiiOtherBoard(): boolean {
@@ -1891,10 +2236,136 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     return !!b && b !== 'OTHER' && !!s;
   }
 
+  /** Shown under Board Examination header — board name comes from Class XII step (no duplicate field). */
+  boardExaminationBoardHint(): string | null {
+    const code = (this.academicsForm.get('classXiiBoardCode')?.value ?? '').toString().trim();
+    if (!code) {
+      return null;
+    }
+    const labels: Record<string, string> = {
+      MBOSE: 'MBOSE',
+      CBSE: 'CBSE',
+      ISC: 'ISC',
+      OTHER: 'Other',
+    };
+    return `Board: ${labels[code] ?? code} (from your Class XII selection)`;
+  }
+
+  /** Persisted on `boardExamination.boardName` for PDF/API — derived from Class XII board code. */
+  private resolveBoardExaminationBoardName(): string {
+    const code = (this.academicsForm.get('classXiiBoardCode')?.value ?? '').toString().trim();
+    const map: Record<string, string> = {
+      MBOSE: 'MBOSE',
+      CBSE: 'CBSE',
+      ISC: 'ISC',
+      OTHER: 'Other',
+    };
+    return map[code] ?? code ?? '';
+  }
+
+  /** Standard divisions + any legacy free-text value from an old draft. */
+  divisionOptionsForSelect(): readonly string[] {
+    const d = (this.boardExaminationForm.get('division')?.value ?? '').toString().trim();
+    const opts = [...this.divisionOptions];
+    if (d && !opts.includes(d)) {
+      return [d, ...opts];
+    }
+    return opts;
+  }
+
+  /** Years 2020–2026 plus any other year from an older draft. */
+  boardExamYearOptionsForSelect(): readonly string[] {
+    const y = (this.boardExaminationForm.get('year')?.value ?? '').toString().trim();
+    const base = [...this.boardExamYearOptions];
+    if (y && !base.includes(y)) {
+      return [y, ...base].sort();
+    }
+    return base;
+  }
+
+  setCuetApplied(value: 'Applied' | 'Not Applied'): void {
+    this.cuetForm.get('applied')?.setValue(value);
+    this.cdr.markForCheck();
+  }
+
+  setPersonalBool(key: 'isDifferentlyAbled' | 'isEconomicallyWeaker', value: boolean): void {
+    const c = this.personalForm.get(key);
+    if (c) {
+      c.setValue(value);
+      c.markAsDirty();
+      c.markAsTouched();
+    }
+    this.cdr.markForCheck();
+  }
+
+  setHouseholdAreaType(value: 'Urban' | 'Rural'): void {
+    const c = this.contactsForm.get('householdAreaType');
+    if (c) {
+      c.setValue(value);
+      c.markAsDirty();
+      c.markAsTouched();
+    }
+    this.cdr.markForCheck();
+  }
+
+  /** Class XII examination year of passing (dropdown). */
+  readonly boardExamYearOptions = ['2020', '2021', '2022', '2023', '2024', '2025', '2026'] as const;
+
+  readonly divisionOptions = ['First', 'Second', 'Third', 'Distinction'] as const;
+
+  readonly classXiiMinimumSubjects = 5;
+
+  /** Complete core rows (0–4) for progress — aligned with minimum-subjects validator. */
+  classXiiCompleteCount(): number {
+    const board = (this.academicsForm.get('classXiiBoardCode')?.value ?? '').toString().trim();
+    if (!board) {
+      return 0;
+    }
+    let complete = 0;
+    const n = Math.min(5, this.classXiiSubjectsArray.length);
+    for (let i = 0; i < n; i++) {
+      const g = this.classXiiSubjectsArray.at(i) as FormGroup;
+      const subj = g.get('subject')?.value?.toString().trim() ?? '';
+      const marksRaw = g.get('marks')?.value;
+      const marks =
+        marksRaw === null || marksRaw === undefined ? '' : String(marksRaw).trim();
+      const id = g.get('subjectMasterId')?.value?.toString().trim() ?? '';
+      const mode = g.get('entryMode')?.value as 'master' | 'manual' | undefined;
+      if (!marks || g.get('marks')?.errors?.['classXiiMarksInvalid']) {
+        continue;
+      }
+      if (board === 'OTHER') {
+        if (subj) {
+          complete++;
+        }
+      } else if (mode === 'master' && id) {
+        complete++;
+      } else if (mode === 'manual' && subj) {
+        complete++;
+      }
+    }
+    return complete;
+  }
+
+  classXiiUseMasterDropdown(group: AbstractControl): boolean {
+    if (this.isClassXiiOtherBoard()) {
+      return false;
+    }
+    return (group as FormGroup).get('entryMode')?.value === 'master';
+  }
+
+  classXiiUseManualSubjectField(group: AbstractControl): boolean {
+    return this.isClassXiiOtherBoard() || (group as FormGroup).get('entryMode')?.value === 'manual';
+  }
+
   availableOptionsForRow(rowIndex: number): ClassXiiSubjectOptionDto[] {
+    const row = this.classXiiSubjectsArray.at(rowIndex);
+    if (!row || !this.classXiiUseMasterDropdown(row)) {
+      return [];
+    }
     const list = this.subjectsList();
     const currentId =
-      this.classXiiSubjectsArray.at(rowIndex)?.get('subjectMasterId')?.value?.toString().trim() ?? '';
+      row.get('subjectMasterId')?.value?.toString().trim() ?? '';
     const taken = new Set<string>();
     this.classXiiSubjectsArray.controls.forEach((ctrl, idx) => {
       if (idx === rowIndex) {
@@ -1949,17 +2420,22 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
   }
 
   addClassXiiSubjectRow(): void {
-    this.classXiiSubjectsArray.push(this.createClassXiiRowGroup(true));
+    const idx = this.classXiiSubjectsArray.length;
+    this.classXiiSubjectsArray.push(this.createClassXiiRowGroupForIndex(idx));
     this.classXiiSubjectsArray.updateValueAndValidity({ emitEvent: false });
     this.cdr.markForCheck();
   }
 
   removeClassXiiSubjectRow(index: number): void {
+    if (index < 5) {
+      return;
+    }
     if (this.classXiiSubjectsArray.length <= 5) {
       this.toast.show('At least five subjects are required.', 'error');
       return;
     }
     this.classXiiSubjectsArray.removeAt(index);
+    this.syncClassXiiEntryModesAndValidators();
     this.classXiiSubjectsArray.updateValueAndValidity({ emitEvent: false });
     this.cdr.markForCheck();
   }
@@ -2005,6 +2481,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       ctrl.patchValue({ subjectMasterId: '', subject: '', marks: '' }, { emitEvent: false });
       ctrl.markAsPristine();
     });
+    this.syncClassXiiEntryModesAndValidators();
     this.classXiiSubjectsArray.updateValueAndValidity({ emitEvent: false });
   }
 
@@ -2071,11 +2548,14 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
   }
 
   private setClassXiiSubjectsFromDto(rows: ClassXiiSubjectRow[]): void {
+    const board = (this.academicsForm.get('classXiiBoardCode')?.value ?? '').toString().trim();
     while (this.classXiiSubjectsArray.length) {
       this.classXiiSubjectsArray.removeAt(0);
     }
     rows.forEach((r, i) => {
-      const g = this.createClassXiiRowGroup(i >= 5);
+      const g = this.createClassXiiRowGroupShell();
+      const mode = this.resolveEntryModeForLoadedRow(r, i, board);
+      g.get('entryMode')?.setValue(mode, { emitEvent: false });
       g.patchValue(
         {
           subjectMasterId: r.subjectMasterId?.toString() ?? '',
@@ -2084,21 +2564,30 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
         },
         { emitEvent: false }
       );
+      this.applyClassXiiRowFieldValidators(g, i);
       this.classXiiSubjectsArray.push(g);
     });
     while (this.classXiiSubjectsArray.length < 5) {
-      this.classXiiSubjectsArray.push(this.createClassXiiRowGroup(false));
+      const i = this.classXiiSubjectsArray.length;
+      this.classXiiSubjectsArray.push(this.createClassXiiRowGroupForIndex(i));
     }
     this.classXiiSubjectsArray.updateValueAndValidity({ emitEvent: false });
   }
 
   private setClassXiiSubjectsFromLegacy(legacy: SubjectMark[]): void {
+    const board = (this.academicsForm.get('classXiiBoardCode')?.value ?? '').toString().trim();
     const filled = legacy.filter((x) => (x.subject?.trim() ?? '') || (x.marks?.trim() ?? ''));
     while (this.classXiiSubjectsArray.length) {
       this.classXiiSubjectsArray.removeAt(0);
     }
     filled.forEach((r, i) => {
-      const g = this.createClassXiiRowGroup(i >= 5);
+      const g = this.createClassXiiRowGroupShell();
+      const mode = this.resolveEntryModeForLoadedRow(
+        { subject: r.subject, marks: r.marks, subjectMasterId: undefined },
+        i,
+        board
+      );
+      g.get('entryMode')?.setValue(mode, { emitEvent: false });
       g.patchValue(
         {
           subjectMasterId: '',
@@ -2107,10 +2596,12 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
         },
         { emitEvent: false }
       );
+      this.applyClassXiiRowFieldValidators(g, i);
       this.classXiiSubjectsArray.push(g);
     });
     while (this.classXiiSubjectsArray.length < 5) {
-      this.classXiiSubjectsArray.push(this.createClassXiiRowGroup(false));
+      const i = this.classXiiSubjectsArray.length;
+      this.classXiiSubjectsArray.push(this.createClassXiiRowGroupForIndex(i));
     }
     this.classXiiSubjectsArray.updateValueAndValidity({ emitEvent: false });
   }
@@ -2120,18 +2611,16 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       this.classXiiSubjectsArray.removeAt(0);
     }
     for (let i = 0; i < 5; i++) {
-      this.classXiiSubjectsArray.push(this.createClassXiiRowGroup(false));
+      this.classXiiSubjectsArray.push(this.createClassXiiRowGroupForIndex(i));
     }
     this.classXiiSubjectsArray.updateValueAndValidity({ emitEvent: false });
   }
 
   private buildClassXiiSubjectsPayload(): ClassXiiSubjectRow[] {
-    const acRaw = this.academicsForm.getRawValue() as { classXiiBoardCode?: string };
-    const board = (acRaw.classXiiBoardCode ?? '').toString().trim();
-    const isOther = board === 'OTHER';
     const out: ClassXiiSubjectRow[] = [];
     for (const ctrl of this.classXiiSubjectsArray.controls) {
       const v = ctrl.getRawValue() as {
+        entryMode?: 'master' | 'manual';
         subjectMasterId: string;
         subject: string;
         marks: string | number | null;
@@ -2139,16 +2628,23 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       const subject = (v.subject ?? '').toString().trim();
       const marks =
         v.marks === null || v.marks === undefined ? '' : String(v.marks).trim();
-      if (!subject && !marks) {
+      const idTrim = v.subjectMasterId?.toString().trim() ?? '';
+      if (!subject && !marks && !idTrim) {
         continue;
       }
+      const mode: 'master' | 'manual' = v.entryMode === 'manual' ? 'manual' : 'master';
+      let subjectOut = subject;
+      if (mode === 'master' && !subjectOut && idTrim) {
+        const item = this.subjectsList().find((x) => x.id === idTrim);
+        subjectOut = item?.subjectName ?? '';
+      }
       const row: ClassXiiSubjectRow = {
-        subject,
+        subject: subjectOut,
         marks,
-        entryMode: isOther ? 'manual' : 'master',
+        entryMode: mode,
       };
-      if (!isOther && v.subjectMasterId?.toString().trim()) {
-        row.subjectMasterId = v.subjectMasterId.toString().trim();
+      if (mode === 'master' && idTrim) {
+        row.subjectMasterId = idTrim;
       }
       out.push(row);
     }
@@ -2231,6 +2727,11 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       'religion',
       this.personalForm.get('religion')?.value as string | null
     );
+    preserveStringField(
+      personal,
+      'denomination',
+      this.personalForm.get('denomination')?.value as string | null
+    );
     personal.dateOfBirth = this.formatDateForDisplay(personal.dateOfBirth);
     
     // Filter out empty strings - only patch fields that have actual values
@@ -2244,10 +2745,14 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     if (personal.category?.trim()) personalToPatch.category = personal.category.trim();
     if (personal.raceOrTribe?.trim()) personalToPatch.raceOrTribe = personal.raceOrTribe.trim();
     if (personal.religion?.trim()) personalToPatch.religion = personal.religion.trim();
+    if ((personal.religion ?? '').trim() === 'Christian') {
+      personalToPatch.denomination = (personal.denomination ?? '').toString().trim();
+    }
     if (personal.isDifferentlyAbled !== undefined) personalToPatch.isDifferentlyAbled = personal.isDifferentlyAbled;
     if (personal.isEconomicallyWeaker !== undefined) personalToPatch.isEconomicallyWeaker = personal.isEconomicallyWeaker;
     
     this.personalForm.patchValue(personalToPatch, { emitEvent: false });
+    this.syncDenominationWithReligion(true);
 
     const address = { ...draft.address };
     preserveStringField(
@@ -2292,21 +2797,12 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     } finally {
       this.draftPatchInProgress = false;
     }
-
+    
     // Patch boardExamination with explicit totalMarks handling
     const boardExaminationForm = this.academicsForm.get('boardExamination') as FormGroup;
     if (boardExaminationForm) {
-      // Get draft totalMarks value - handle both undefined/null and empty string cases
       const draftTotalMarks = draft.academics.boardExamination.totalMarks;
-      // Debug: Log the loaded draft totalMarks value and the entire boardExamination object
-      console.log('Loading draft - boardExamination:', draft.academics.boardExamination);
-      console.log('Loading draft - totalMarks from draft:', draftTotalMarks);
-      console.log('Loading draft - totalMarks type:', typeof draftTotalMarks);
-      console.log('Loading draft - totalMarks === undefined:', draftTotalMarks === undefined);
-      console.log('Loading draft - totalMarks === null:', draftTotalMarks === null);
-      
-      // Use draft value if it exists and is not empty, otherwise preserve existing form value
-      // This prevents clearing the field if the draft doesn't have the value
+
       const existingFormValue = boardExaminationForm.get('totalMarks')?.value;
       let totalMarksValue = '';
       
@@ -2314,20 +2810,13 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       const formTrimmed = existingFormValue?.toString().trim() ?? '';
       
       if (draftTrimmed !== '') {
-        // Draft has a valid value, use it
         totalMarksValue = draftTrimmed;
       } else if (formTrimmed !== '') {
-        // Draft doesn't have value, but form has one - preserve it (might be user just entered it)
         totalMarksValue = formTrimmed;
-        console.log('Preserving existing form value:', totalMarksValue);
       } else {
-        // Both are empty, use empty string
         totalMarksValue = '';
       }
       
-      console.log('Patching form with totalMarks:', totalMarksValue || '(empty)');
-      
-      // Only patch fields that have actual values (not empty strings)
       const boardExaminationData: Partial<BoardExaminationDetail> = {};
       
       if (draft.academics.boardExamination.rollNumber?.trim()) {
@@ -2344,9 +2833,6 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       }
       if (draft.academics.boardExamination.division?.trim()) {
         boardExaminationData['division'] = draft.academics.boardExamination.division.trim();
-      }
-      if (draft.academics.boardExamination.boardName?.trim()) {
-        boardExaminationData['boardName'] = draft.academics.boardExamination.boardName.trim();
       }
       if (draft.academics.boardExamination.registrationType?.trim()) {
         boardExaminationData['registrationType'] = draft.academics.boardExamination.registrationType.trim();
@@ -2381,7 +2867,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
      );
     this.updateMinorOptions(true);
     this.updateSupplementOptions(normalizedShift, true);
-    this.uploadsForm.patchValue(draft.uploads);
+    this.uploadsForm.patchValue(this.sanitizeUploadSection(draft.uploads));
     this.declarationForm.patchValue({
       declarationAccepted: draft.declarationAccepted,
     });
@@ -2415,6 +2901,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
 
   private toDraft(): ApplicantApplicationDraft {
     const personalRaw = this.personalForm.getRawValue();
+    const religion = (personalRaw.religion ?? '').toString().trim();
     const personal: PersonalInformation = {
       nameAsPerAdmitCard: personalRaw.nameAsPerAdmitCard ?? '',
       dateOfBirth: this.normalizeDateForStorage(personalRaw.dateOfBirth ?? ''),
@@ -2423,7 +2910,11 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       bloodGroup: personalRaw.bloodGroup ?? '',
       category: personalRaw.category ?? '',
       raceOrTribe: personalRaw.raceOrTribe ?? '',
-      religion: personalRaw.religion ?? '',
+      religion,
+      denomination:
+        religion === 'Christian'
+          ? (personalRaw.denomination ?? '').toString().trim() || null
+          : null,
       isDifferentlyAbled: Boolean(personalRaw.isDifferentlyAbled),
       isEconomicallyWeaker: Boolean(personalRaw.isEconomicallyWeaker),
     };
@@ -2508,7 +2999,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       totalMarks: totalMarksValue || '',
       percentage: boardRaw.percentage ?? '',
       division: boardRaw.division ?? '',
-      boardName: boardRaw.boardName ?? '',
+      boardName: this.resolveBoardExaminationBoardName(),
       registrationType: boardRaw.registrationType ?? '',
     };
 
@@ -2707,9 +3198,9 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     lock(this.personalForm, 'bloodGroup');
     lock(this.personalForm, 'category');
     lock(this.personalForm, 'raceOrTribe');
-    lock(this.personalForm, 'religion');
+    // Religion & denomination stay editable so users can correct demographics from the list after draft save.
     // isDifferentlyAbled and isEconomicallyWeaker should remain editable
-    lock(this.addressForm, 'email');
+    // Email stays editable (correspondence may differ from login account)
   }
 
   private setupPersonalInformationEffects(): void {
@@ -2776,7 +3267,12 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
 
     majorControl?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.updateMinorOptions(false);
+      this.refreshMdcEligibilityFromCurrentShift();
     });
+
+    this.academicsForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.refreshMdcEligibilityFromCurrentShift());
   }
 
   private setupAddressSyncEffect(): void {
@@ -2946,8 +3442,12 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       return null;
     }
     const label = this.uploadFieldLabels[controlName];
+    const empty = c.errors?.['attachmentEmpty'] as { message?: string } | undefined;
+    if (empty?.message) {
+      return empty.message;
+    }
     if (c.errors?.['required']) {
-      return `${label} is required.`;
+      return `${label} is required. Choose a JPEG, PNG, or PDF (max 5 MB).`;
     }
     return `${label} is invalid.`;
   }
@@ -2966,6 +3466,14 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     const grpErr = group.errors?.['masterPickRequired'] as { message?: string } | undefined;
     if (grpErr?.message) {
       errors.push(grpErr.message);
+    }
+    const manualSubErr = group.errors?.['manualSubjectRequired'] as { message?: string } | undefined;
+    if (manualSubErr?.message) {
+      errors.push(manualSubErr.message);
+    }
+    const manualMarksErr = group.errors?.['manualMarksRequired'] as { message?: string } | undefined;
+    if (manualMarksErr?.message) {
+      errors.push(manualMarksErr.message);
     }
 
     Object.entries(group.controls).forEach(([key, control]) => {
@@ -3026,6 +3534,9 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       if (fieldKey === 'declarationAccepted') {
         return ['You must accept the declaration to submit.'];
       }
+      if (this.uploadFieldLabels[fieldKey as keyof UploadSection]) {
+        return [`${label} is required. Choose a file (JPEG, PNG, or PDF).`];
+      }
       return [`${label} is required.`];
     }
     if (errs['requiredTrue']) {
@@ -3044,6 +3555,8 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       'subjectInvalid',
       'marksInvalid',
       'classXiiMarksInvalid',
+      'attachmentEmpty',
+      'mdcIneligible',
     ] as const;
     for (const k of customKeys) {
       const err = errs[k] as { message?: string } | undefined;

@@ -16,12 +16,19 @@ public class ApplicantAuthController(IMediator mediator) : ControllerBase
 {
     [HttpPost("login")]
     public async Task<ActionResult<LoginStudentApplicantResponse>> Login(
-        [FromBody] LoginStudentApplicantRequest request,
+        [FromBody] LoginStudentApplicantRequest? request,
         CancellationToken cancellationToken)
     {
+        if (request is null ||
+            string.IsNullOrWhiteSpace(request.Username) ||
+            request.Password is null)
+        {
+            return BadRequest(new { message = "Username and password are required." });
+        }
+
         try
         {
-            var command = new LoginStudentApplicantCommand(request.Username, request.Password);
+            var command = new LoginStudentApplicantCommand(request.Username.Trim(), request.Password);
             var result = await mediator.Send(command, cancellationToken);
 
             return Ok(MapToResponse(result));

@@ -81,7 +81,7 @@ export class AdminDocumentVerificationComponent implements OnInit {
     dateFrom: [''],
     dateTo: [''],
   });
-
+  
   protected readonly verificationForm = this.fb.group({
     isVerified: [true, Validators.required],
     remarks: [''],

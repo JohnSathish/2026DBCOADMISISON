@@ -55,6 +55,22 @@ export function shouldPreselectUpi(prefill: RazorpayPrefill): boolean {
   return !!email && !!contact;
 }
 
+/**
+ * Razorpay `image` URL for Standard Checkout.
+ *
+ * **Important:** If you pass `image` in checkout options, it **overrides** the logo set in
+ * Razorpay Dashboard → Settings → Branding. Passing a broken URL (e.g. missing file) hides the logo.
+ *
+ * We only set `image` when the API returns an explicit `checkoutLogoUrl` (e.g. full HTTPS URL in
+ * appsettings `Razorpay:CheckoutLogoUrl`). Otherwise we omit `image` so the **Dashboard logo** is used.
+ */
+export function resolveRazorpayCheckoutImageUrl(
+  checkoutLogoUrlFromApi?: string | null
+): string | undefined {
+  const trimmed = checkoutLogoUrlFromApi?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 export interface BuildRazorpayOptionsParams {
   key: string;
   amountPaise: number;
@@ -66,6 +82,8 @@ export interface BuildRazorpayOptionsParams {
   prefill: RazorpayPrefill;
   themeColor?: string;
   onDismiss?: () => void;
+  /** Razorpay `image` — absolute HTTPS URL preferred; see resolveRazorpayCheckoutImageUrl */
+  checkoutLogoUrl?: string | null;
 }
 
 /** Options for `new Razorpay(options).open()`. */
@@ -92,6 +110,11 @@ export function buildRazorpayStandardOptions(params: BuildRazorpayOptionsParams)
       ondismiss: () => params.onDismiss?.(),
     },
   };
+
+  const imageUrl = resolveRazorpayCheckoutImageUrl(params.checkoutLogoUrl);
+  if (imageUrl) {
+    options['image'] = imageUrl;
+  }
 
   if (shouldPreselectUpi(prefill)) {
     options['method'] = 'upi';

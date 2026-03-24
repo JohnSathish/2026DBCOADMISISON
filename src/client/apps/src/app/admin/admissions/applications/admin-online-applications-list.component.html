@@ -66,36 +66,50 @@
           </button>
         </div>
 
+        <div class="filter-item filter-item--wide">
+          <label class="filter-label">Application stage (funnel)</label>
+          <select
+            [formControl]="lifecycleStageControl"
+            (change)="onFilterChange()"
+            class="form-select"
+          >
+            <option *ngFor="let o of lifecycleFilterOptions" [value]="o.value">{{ o.label }}</option>
+          </select>
+          <p class="filter-hint">
+            When a stage is selected, submission / payment dropdowns below are ignored for the server query.
+          </p>
+        </div>
+
         <!-- Application Submitted Filter -->
         <div class="filter-item">
-          <label class="filter-label">Application Submitted</label>
+          <label class="filter-label">Application submitted</label>
           <select
             [formControl]="submittedFilterControl"
             (change)="onFilterChange()"
             class="form-select"
           >
-            <option [value]="null">All</option>
-            <option [value]="true">Yes</option>
-            <option [value]="false">No</option>
+            <option [ngValue]="null">All</option>
+            <option [ngValue]="true">Yes</option>
+            <option [ngValue]="false">No</option>
           </select>
         </div>
 
         <!-- Payment Completed Filter -->
         <div class="filter-item">
-          <label class="filter-label">Payment status (application fee)</label>
+          <label class="filter-label">Payment (application fee)</label>
           <select
             [formControl]="paymentFilterControl"
             (change)="onFilterChange()"
             class="form-select"
           >
-            <option [value]="null">All</option>
-            <option [value]="true">Paid</option>
-            <option [value]="false">Pending</option>
+            <option [ngValue]="null">All</option>
+            <option [ngValue]="true">Paid</option>
+            <option [ngValue]="false">Not paid</option>
           </select>
         </div>
 
         <div class="filter-item">
-          <label class="filter-label">Application status</label>
+          <label class="filter-label">Pipeline status</label>
           <select [formControl]="statusFilterControl" (change)="onFilterChange()" class="form-select">
             <option value="">All</option>
             <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
@@ -127,6 +141,25 @@
             <option value="normal">Normal</option>
             <option value="direct">Direct admission</option>
           </select>
+        </div>
+
+        <div class="filter-item">
+          <label class="filter-label">Created from</label>
+          <input
+            type="date"
+            class="form-control"
+            [formControl]="createdFromControl"
+            (change)="onFilterChange()"
+          />
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">Created to</label>
+          <input
+            type="date"
+            class="form-control"
+            [formControl]="createdToControl"
+            (change)="onFilterChange()"
+          />
         </div>
       </div>
 
@@ -200,7 +233,8 @@
                   <iconify-icon [icon]="sortIcon('classXiiPercentage')"></iconify-icon>
                 </button>
               </th>
-              <th>Status</th>
+              <th>Application stage</th>
+              <th>Pipeline</th>
               <th>Payment</th>
               <th>
                 <button type="button" class="th-sort" (click)="toggleSort('createdOnUtc')">
@@ -224,6 +258,9 @@
               <td>{{ app.shift }}</td>
               <td>{{ formatPct(app) }}</td>
               <td>
+                <span [ngClass]="applicationLifecycleBadgeClass(app)">{{ applicationLifecycleLabel(app) }}</span>
+              </td>
+              <td>
                 <span class="status-badge" [ngClass]="statusBadgeClass(app.status)">
                   {{ app.status }}
                 </span>
@@ -237,7 +274,7 @@
                       'status-pending': !app.isPaymentCompleted
                     }"
                   >
-                    {{ app.isPaymentCompleted ? 'Paid' : 'Pending' }}
+                    {{ app.isPaymentCompleted ? 'Paid' : 'Not paid' }}
                   </span>
                 </div>
               </td>
@@ -316,9 +353,9 @@
         </table>
       </div>
 
-      <p *ngIf="!applications().length" class="empty-message">No applications found.</p>
+      <p *ngIf="!applications().length" class="empty-message">{{ emptyServerMessage() }}</p>
       <p *ngIf="applications().length && !filteredApplications().length" class="empty-message">
-        No rows match the current refiners. Clear refiners or adjust filters.
+        No rows match the current page refiners. Use “Clear refiners” or widen workflow / category / major filters.
       </p>
     </div>
   </div>

@@ -55,12 +55,12 @@
               </button>
               @if (item.expanded) {
                 <ul class="erp-admin__subnav">
-                  @for (child of item.children; track $index) {
+                  @for (child of item.children; track child.route) {
                     <li>
                       <a
                         [routerLink]="child.route"
                         routerLinkActive="erp-admin__sublink--active"
-                        [routerLinkActiveOptions]="{ exact: true }"
+                        [routerLinkActiveOptions]="{ exact: false }"
                         class="erp-admin__sublink"
                         (click)="closeMobileSidebar()"
                       >
@@ -105,7 +105,7 @@
           type="search"
           name="admin-search"
           class="erp-admin__search-input"
-          placeholder="Search students, applicants, or modules…"
+          placeholder="Search applicants or admissions…"
           autocomplete="off"
           [value]="searchTerm()"
           (input)="onSearch($any($event.target).value)"
@@ -170,9 +170,9 @@
                   <div class="erp-admin__dropdown-name">{{ authService.profile?.fullName || 'Admin User' }}</div>
                   <div class="erp-admin__dropdown-email">{{ authService.profile?.email || 'admin@example.com' }}</div>
                 </div>
-                <a routerLink="/admin/settings/users" class="erp-admin__dropdown-item" (click)="profileDropdownOpen.set(false)">
-                  <iconify-icon icon="solar:settings-bold"></iconify-icon>
-                  Settings
+                <a routerLink="/admin/admissions/applications" class="erp-admin__dropdown-item" (click)="profileDropdownOpen.set(false)">
+                  <iconify-icon icon="solar:document-text-bold"></iconify-icon>
+                  Applications
                 </a>
                 <button type="button" class="erp-admin__dropdown-item erp-admin__dropdown-item--danger" (click)="logout()">
                   <iconify-icon icon="solar:logout-3-bold"></iconify-icon>

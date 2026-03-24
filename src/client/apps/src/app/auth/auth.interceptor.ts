@@ -29,25 +29,38 @@ export class AuthInterceptor implements HttpInterceptor {
 
     return next.handle(authReq).pipe(
       catchError((error) => {
-        if (error.status === 401 && profile?.refreshToken) {
-          return this.auth
-            .refreshToken(profile.refreshToken)
-            .pipe(
-              switchMap(() => {
-                const updatedToken = this.auth.profile?.token;
-                if (!updatedToken) {
-                  this.auth.logout();
-                  return throwError(() => error);
-                }
-                const retryRequest = req.clone({
-                  setHeaders: { Authorization: `Bearer ${updatedToken}` },
-                });
-                return next.handle(retryRequest);
-              })
-            );
+        const url = req.url;
+        const isLoginAttempt =
+          url.includes('/auth/applicants/login') || url.includes('/auth/admin/login');
+        const isRefreshCall = url.includes('/auth/applicants/refresh');
+
+        // Wrong password / invalid login returns 401 — do not run refresh flow (stale session would mask errors).
+        if (
+          error.status === 401 &&
+          profile?.refreshToken &&
+          !isLoginAttempt &&
+          !isRefreshCall
+        ) {
+          return this.auth.refreshToken(profile.refreshToken).pipe(
+            switchMap(() => {
+              const updatedToken = this.auth.profile?.token;
+              if (!updatedToken) {
+                this.auth.logout();
+                return throwError(() => error);
+              }
+              const retryRequest = req.clone({
+                setHeaders: { Authorization: `Bearer ${updatedToken}` },
+              });
+              return next.handle(retryRequest);
+            })
+          );
         }
 
-        if (error.status === 401 || error.status === 403) {
+        // Expired session on protected APIs — clear stored auth. Skip for failed login so the form stays usable.
+        if (
+          (error.status === 401 || error.status === 403) &&
+          !isLoginAttempt
+        ) {
           this.auth.logout();
         }
 

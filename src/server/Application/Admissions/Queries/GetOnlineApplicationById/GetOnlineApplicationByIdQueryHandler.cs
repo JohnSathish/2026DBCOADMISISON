@@ -76,7 +76,8 @@ public sealed class GetOnlineApplicationByIdQueryHandler : IRequestHandler<GetOn
             account.OfflineIssuedMajorSubject,
             account.OfflineFormReceivedOnUtc,
             account.SelectionListRound,
-            account.SelectionListPublishedAtUtc);
+            account.SelectionListPublishedAtUtc,
+            account.CuetAppliedAtIssue);
     }
 }
 

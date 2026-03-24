@@ -11,6 +11,13 @@ public class RazorpaySettings
     public string KeySecret { get; set; } = string.Empty;
     public bool TestMode { get; set; } = true;
     public decimal ApplicationFeeAmount { get; set; } = 600.00m;
+
+    /// <summary>
+    /// Full URL to a square-ish logo (PNG/JPG/SVG) passed to Standard Checkout as <c>image</c>.
+    /// Must be publicly reachable (HTTPS in production). If empty, the client omits <c>image</c> so
+    /// Razorpay uses the logo from Dashboard → Settings → Branding.
+    /// </summary>
+    public string? CheckoutLogoUrl { get; set; }
 }
 
 

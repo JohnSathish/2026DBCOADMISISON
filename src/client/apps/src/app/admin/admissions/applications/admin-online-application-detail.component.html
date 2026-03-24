@@ -104,6 +104,13 @@
                 <label>Shift</label>
                 <div class="info-value">{{ application()!.shift }}</div>
               </div>
+              <div
+                class="info-item"
+                *ngIf="application()!.cuetAppliedAtIssue !== null && application()!.cuetAppliedAtIssue !== undefined"
+              >
+                <label>CUET (at offline issue)</label>
+                <div class="info-value">{{ application()!.cuetAppliedAtIssue ? 'Yes' : 'No' }}</div>
+              </div>
               <div class="info-item">
                 <label>Registered On</label>
                 <div class="info-value">{{ application()!.createdOnUtc | date: 'dd MMM yyyy HH:mm' }}</div>

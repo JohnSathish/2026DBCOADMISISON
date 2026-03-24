@@ -1,3 +1,4 @@
+using ERP.Application.Admissions;
 using ERP.Application.Admissions.Interfaces;
 using ERP.Domain.Admissions.Entities;
 using MediatR;
@@ -70,6 +71,12 @@ public sealed class IssueOfflineAdmissionFormCommandHandler
             throw new InvalidOperationException("Application fee cannot be negative.");
         }
 
+        var shiftCode = OfflineAdmissionShift.TryNormalize(request.Shift);
+        if (shiftCode is null)
+        {
+            throw new InvalidOperationException("Shift must be Shift-I, Shift-II, or Shift-III.");
+        }
+
         var issuedOn = DateTime.UtcNow;
         var issuance = new OfflineFormIssuance
         {
@@ -78,19 +85,24 @@ public sealed class IssueOfflineAdmissionFormCommandHandler
             StudentName = name,
             MobileNumber = mobile,
             ApplicationFeeAmount = request.ApplicationFeeAmount,
+            Shift = shiftCode,
+            CuetApplied = request.CuetApplied,
             IssuedOnUtc = issuedOn,
             ApplicantAccountId = null,
         };
 
         await _issuanceRepository.AddAsync(issuance, cancellationToken);
 
+        var shiftDisplay = OfflineAdmissionShift.ToDisplayLabel(shiftCode);
         var (pdf, fileName) = await _receiptPdf.GenerateAsync(
             formNumber,
             name,
             majorSubject: null,
             request.ApplicationFeeAmount,
             issuedOn,
-            mobileNumberForReceipt: null,
+            mobileNumberForReceipt: mobile,
+            shiftDisplay,
+            request.CuetApplied,
             cancellationToken);
 
         return new IssueOfflineAdmissionFormResult(

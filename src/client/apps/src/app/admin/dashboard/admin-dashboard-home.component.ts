@@ -20,6 +20,11 @@ import { AuthService } from '../../auth/auth.service';
 import { ToastService } from '../../shared/toast.service';
 import { firstValueFrom } from 'rxjs';
 import { ADMIN_APPLICANT_STATUSES } from '../admin.constants';
+import {
+  APPLICATION_LIFECYCLE_FILTER_OPTIONS,
+  getApplicationLifecycleLabel,
+  getApplicationLifecycleBadgeClass,
+} from '../admissions/application-lifecycle.util';
 import { createAngularTable, getCoreRowModel, type ColumnDef } from '@tanstack/angular-table';
 import type { Row } from '@tanstack/angular-table';
 
@@ -34,10 +39,15 @@ const APPLICATION_TABLE_COLUMNS: ColumnDef<OnlineApplicationDto>[] = [
     header: 'Course',
   },
   { id: 'shift', accessorFn: (r) => r.shift ?? '', header: 'Shift' },
-  { id: 'status', accessorKey: 'status', header: 'Status' },
+  {
+    id: 'lifecycle',
+    accessorFn: (r) => getApplicationLifecycleLabel(r),
+    header: 'Application stage',
+  },
+  { id: 'status', accessorKey: 'status', header: 'Pipeline' },
   {
     id: 'payment',
-    accessorFn: (r) => (r.isPaymentCompleted ? 'Paid' : 'Unpaid'),
+    accessorFn: (r) => (r.isPaymentCompleted ? 'Paid' : 'Not paid'),
     header: 'Payment',
   },
   { id: 'createdOnUtc', accessorKey: 'createdOnUtc', header: 'Created' },
@@ -81,6 +91,8 @@ export class AdminDashboardHomeComponent implements OnInit {
 
   protected readonly searchTerm = signal('');
   protected readonly statusFilter = signal<string>('');
+  /** Server funnel filter (registered → paid). When set, submission/payment booleans are not sent. */
+  protected readonly lifecycleStageFilter = signal<string>('');
   protected readonly paymentFilter = signal<'all' | 'paid' | 'unpaid'>('all');
   protected readonly shiftFilter = signal('');
   protected readonly dateFrom = signal('');
@@ -89,6 +101,7 @@ export class AdminDashboardHomeComponent implements OnInit {
   protected readonly courseContains = signal('');
 
   protected readonly statusOptions = ADMIN_APPLICANT_STATUSES;
+  protected readonly lifecycleFilterOptions = APPLICATION_LIFECYCLE_FILTER_OPTIONS;
   protected readonly shiftOptions = ['', 'Day', 'Morning', 'Evening', 'Night'];
   protected readonly pageSizeOptions = [10, 15, 25, 50];
 
@@ -192,9 +205,16 @@ export class AdminDashboardHomeComponent implements OnInit {
   async loadApplications(): Promise<void> {
     this.tableLoading.set(true);
     try {
+      const lc = this.lifecycleStageFilter().trim();
+      const useLifecycle = !!lc;
       const pay = this.paymentFilter();
-      const isPaymentCompleted =
-        pay === 'all' ? undefined : pay === 'paid' ? true : false;
+      const isPaymentCompleted = useLifecycle
+        ? undefined
+        : pay === 'all'
+          ? undefined
+          : pay === 'paid'
+            ? true
+            : false;
 
       const from = this.dateFrom();
       const to = this.dateTo();
@@ -209,8 +229,8 @@ export class AdminDashboardHomeComponent implements OnInit {
         this.admissionsApi.listOnlineApplications({
           page: this.currentPage(),
           pageSize: this.pageSize(),
-          isApplicationSubmitted: true,
           isPaymentCompleted,
+          applicationLifecycleStage: lc || undefined,
           status: this.statusFilter() || undefined,
           searchTerm: this.searchTerm().trim() || undefined,
           shift: this.shiftFilter() || undefined,
@@ -239,6 +259,7 @@ export class AdminDashboardHomeComponent implements OnInit {
   async resetFilters(): Promise<void> {
     this.searchTerm.set('');
     this.statusFilter.set('');
+    this.lifecycleStageFilter.set('');
     this.paymentFilter.set('all');
     this.shiftFilter.set('');
     this.dateFrom.set('');
@@ -435,7 +456,30 @@ export class AdminDashboardHomeComponent implements OnInit {
   }
 
   paymentLabel(app: OnlineApplicationDto): string {
-    return app.isPaymentCompleted ? 'Paid' : 'Unpaid';
+    return app.isPaymentCompleted ? 'Paid' : 'Not paid';
+  }
+
+  lifecycleBadgeClass(app: OnlineApplicationDto): string {
+    return getApplicationLifecycleBadgeClass(getApplicationLifecycleLabel(app));
+  }
+
+  protected hasActiveServerFilters(): boolean {
+    return !!(
+      this.searchTerm().trim() ||
+      this.statusFilter().trim() ||
+      this.lifecycleStageFilter().trim() ||
+      this.paymentFilter() !== 'all' ||
+      this.shiftFilter().trim() ||
+      this.dateFrom() ||
+      this.dateTo()
+    );
+  }
+
+  protected emptyTableMessage(): string {
+    if (this.hasActiveServerFilters()) {
+      return 'No students match the current filters. Try Reset or change application stage, dates, or search.';
+    }
+    return 'No registered students yet.';
   }
 
   customFormattingFn(value: number): string {
@@ -481,6 +525,6 @@ export class AdminDashboardHomeComponent implements OnInit {
   }
 
   paymentBadgeClass(paid: boolean): string {
-    return paid ? 'admin-dash__status admin-dash__status--success' : 'admin-dash__status admin-dash__status--muted';
+    return paid ? 'admin-dash__status admin-dash__status--success' : 'admin-dash__status admin-dash__status--danger';
   }
 }

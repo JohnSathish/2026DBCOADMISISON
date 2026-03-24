@@ -119,6 +119,8 @@ public class StudentApplicantAccountConfiguration : IEntityTypeConfiguration<Stu
         builder.Property(x => x.OfflineIssuedMajorSubject)
             .HasMaxLength(256);
 
+        builder.Property(x => x.CuetAppliedAtIssue);
+
         builder.Property(x => x.OfflineFormReceivedOnUtc);
 
         builder.Property(x => x.SelectionListRound)

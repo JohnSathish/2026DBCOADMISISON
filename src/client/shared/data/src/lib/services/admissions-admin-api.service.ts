@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Observable, of, throwError, from } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 import { API_BASE_URL } from '@client/shared/util';
 import {
   AdminApplicantDto,
@@ -29,6 +29,60 @@ import {
   GrantDirectAdmissionResultDto,
   AdmittedStudentsListResponse,
 } from '../dtos/admin-applicant.dto';
+
+/** Parse error body when `responseType: 'blob'` — 4xx/5xx bodies arrive as Blob, not JSON. */
+function parseApiErrorBodyText(text: string): string {
+  const t = text.trim();
+  if (!t) {
+    return 'Request failed.';
+  }
+  try {
+    const j = JSON.parse(t) as { title?: string; detail?: string; message?: string };
+    if (typeof j === 'string') {
+      return j;
+    }
+    if (j.detail) {
+      return String(j.detail);
+    }
+    if (j.title && j.title !== 'Bad Request' && j.title !== 'One or more validation errors occurred.') {
+      return String(j.title);
+    }
+    if (j.message) {
+      return String(j.message);
+    }
+  } catch {
+    /* plain text or quoted JSON string */
+  }
+  if (t.startsWith('"') && t.endsWith('"')) {
+    try {
+      return JSON.parse(t) as string;
+    } catch {
+      return t.slice(1, -1);
+    }
+  }
+  return t;
+}
+
+function catchBlobHttpError(err: HttpErrorResponse): Observable<never> {
+  if (err.error instanceof Blob) {
+    return from(err.error.text()).pipe(
+      switchMap((text) => {
+        const msg = parseApiErrorBodyText(text);
+        return throwError(
+          () =>
+            new HttpErrorResponse({
+              error: { message: msg },
+              headers: err.headers,
+              status: err.status,
+              statusText: err.statusText,
+              url: err.url ?? undefined,
+            })
+        );
+      })
+    );
+  }
+  return throwError(() => err);
+}
 
 @Injectable({ providedIn: 'root' })
 export class AdmissionsAdminApiService {
@@ -80,6 +134,8 @@ export class AdmissionsAdminApiService {
     maxClassXiiPercentage?: number | null;
     admissionPath?: string | null;
     admissionChannel?: string | null;
+    /** Server-side funnel filter: registered | formInProgress | paymentPending | paid | submitted */
+    applicationLifecycleStage?: string | null;
   }): Observable<OnlineApplicationsListResponse> {
     let httpParams = new HttpParams();
     if (params) {
@@ -133,6 +189,12 @@ export class AdmissionsAdminApiService {
       }
       if (params.admissionChannel) {
         httpParams = httpParams.set('admissionChannel', params.admissionChannel);
+      }
+      if (params.applicationLifecycleStage) {
+        httpParams = httpParams.set(
+          'applicationLifecycleStage',
+          params.applicationLifecycleStage
+        );
       }
     }
     return this.http.get<OnlineApplicationsListResponse>(
@@ -634,18 +696,24 @@ export class AdmissionsAdminApiService {
     formNumber: string;
     studentName: string;
     mobileNumber: string;
+    shift: string;
+    cuetApplied: boolean;
     applicationFeeAmount: number;
   }): Observable<Blob> {
-    return this.http.post(
-      `${this.apiBaseUrl}/admissions/admin/offline-forms/issue`,
-      {
-        formNumber: payload.formNumber,
-        studentName: payload.studentName,
-        mobileNumber: payload.mobileNumber,
-        applicationFeeAmount: payload.applicationFeeAmount,
-      },
-      { responseType: 'blob' }
-    );
+    return this.http
+      .post(
+        `${this.apiBaseUrl}/admissions/admin/offline-forms/issue`,
+        {
+          formNumber: payload.formNumber,
+          studentName: payload.studentName,
+          mobileNumber: payload.mobileNumber,
+          shift: payload.shift,
+          cuetApplied: payload.cuetApplied,
+          applicationFeeAmount: payload.applicationFeeAmount,
+        },
+        { responseType: 'blob' }
+      )
+      .pipe(catchError((e: HttpErrorResponse) => catchBlobHttpError(e)));
   }
 
   /** Look up issued slip or existing offline applicant (before receive). */
@@ -671,10 +739,12 @@ export class AdmissionsAdminApiService {
   }
 
   getOfflineFormReceiptPdf(formNumber: string): Observable<Blob> {
-    return this.http.get(
-      `${this.apiBaseUrl}/admissions/admin/offline-forms/${encodeURIComponent(formNumber)}/receipt`,
-      { responseType: 'blob' }
-    );
+    return this.http
+      .get(
+        `${this.apiBaseUrl}/admissions/admin/offline-forms/${encodeURIComponent(formNumber)}/receipt`,
+        { responseType: 'blob' }
+      )
+      .pipe(catchError((e: HttpErrorResponse) => catchBlobHttpError(e)));
   }
 
   assignSelectionListRound(
@@ -759,6 +829,10 @@ export interface OfflineFormIssuancePreviewDto {
   issuedOnUtc: string;
   applicantAccountCreated: boolean;
   applicantAccountId: string | null;
+  /** Display label e.g. Shift-I */
+  shiftLabel: string | null;
+  /** Recorded at issuance; null for legacy accounts where not stored */
+  cuetApplied: boolean | null;
 }
 
 export interface ReceiveOfflineAdmissionFormResponse {

@@ -20,6 +20,11 @@ public class ApplicantPasswordHasher : IApplicantPasswordHasher
 
     public bool VerifyPassword(StudentApplicantAccount account, string hashedPassword, string providedPassword)
     {
+        if (string.IsNullOrEmpty(hashedPassword))
+        {
+            return false;
+        }
+
         var result = _passwordHasher.VerifyHashedPassword(account, hashedPassword, providedPassword);
         return result == PasswordVerificationResult.Success || result == PasswordVerificationResult.SuccessRehashNeeded;
     }

@@ -11,6 +11,12 @@ importers:
       '@angular-devkit/build-angular':
         specifier: ~20.3.0
         version: 20.3.9(2c674428fe60082cfa6665ae3b73ede2)
+      '@angular/animations':
+        specifier: ~20.3.0
+        version: 20.3.10(@angular/core@20.3.10(@angular/compiler@20.3.10)(rxjs@7.8.2)(zone.js@0.15.1))
+      '@angular/cdk':
+        specifier: ^20.2.14
+        version: 20.2.14(@angular/common@20.3.10(@angular/core@20.3.10(@angular/compiler@20.3.10)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.10(@angular/compiler@20.3.10)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
       '@angular/common':
         specifier: ~20.3.0
         version: 20.3.10(@angular/core@20.3.10(@angular/compiler@20.3.10)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
@@ -195,6 +201,9 @@ importers:
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
+      postcss-import:
+        specifier: ^16.1.1
+        version: 16.1.1(postcss@8.5.6)
       prettier:
         specifier: ^2.6.2
         version: 2.8.8
@@ -6631,6 +6640,12 @@ packages:
   postcss-import@14.1.0:
     resolution: {integrity: sha512-flwI+Vgm4SElObFVPpTIT7SU7R3qk2L7PyduMcokiaVKuWv9d/U+Gm/QAd8NDLuykTWTkcrjOeD2Pp1rMeBTGw==}
     engines: {node: '>=10.0.0'}
+    peerDependencies:
+      postcss: ^8.0.0
+
+  postcss-import@16.1.1:
+    resolution: {integrity: sha512-2xVS1NCZAfjtVdvXiyegxzJ447GyqCeEI5V7ApgQVOWnros1p5lGNovJNapwPpMombyFBfqDwt7AD3n2l0KOfQ==}
+    engines: {node: '>=18.0.0'}
     peerDependencies:
       postcss: ^8.0.0
 
@@ -16671,6 +16686,13 @@ snapshots:
       postcss: 8.5.6
 
   postcss-import@14.1.0(postcss@8.5.6):
+    dependencies:
+      postcss: 8.5.6
+      postcss-value-parser: 4.2.0
+      read-cache: 1.0.0
+      resolve: 1.22.11
+
+  postcss-import@16.1.1(postcss@8.5.6):
     dependencies:
       postcss: 8.5.6
       postcss-value-parser: 4.2.0

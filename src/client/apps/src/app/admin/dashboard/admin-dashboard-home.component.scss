@@ -103,7 +103,7 @@
   padding: var(--acc-space-4) var(--acc-space-4);
   background: linear-gradient(115deg, #1e3a8a 0%, #2563eb 38%, #0891b2 72%, #4338ca 100%);
   color: #f8fafc;
-  box-shadow: var(--acc-shadow-md);
+  box-shadow: var(--acc-shadow-md), 0 0 0 1px rgba(255, 255, 255, 0.1);
   position: relative;
   overflow: hidden;
 
@@ -263,6 +263,24 @@
   border-radius: var(--acc-radius-lg);
   box-shadow: var(--acc-shadow);
   padding: var(--acc-space-3) var(--acc-space-4);
+}
+
+.admin-dash__filters-card,
+.admin-dash__panel {
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+
+  &:hover {
+    box-shadow: var(--acc-shadow-md);
+    border-color: rgba(37, 99, 235, 0.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    &:hover {
+      border-color: rgba(96, 165, 250, 0.35);
+    }
+  }
 }
 
 .admin-dash__card-title {
@@ -579,6 +597,36 @@
       color: #93c5fd;
     }
   }
+}
+
+.app-lifecycle {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.app-lifecycle--registered {
+  background: rgba(100, 116, 139, 0.2);
+  color: #475569;
+}
+
+.app-lifecycle--in-progress {
+  background: rgba(59, 130, 246, 0.18);
+  color: #1d4ed8;
+}
+
+.app-lifecycle--payment-pending {
+  background: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+}
+
+.app-lifecycle--paid {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
 }
 
 .admin-dash__erp {

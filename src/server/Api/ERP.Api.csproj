@@ -22,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Explicit copy: default SDK content may not place Logo.png beside the host for PDF generation. -->
     <Content Include="Logo.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

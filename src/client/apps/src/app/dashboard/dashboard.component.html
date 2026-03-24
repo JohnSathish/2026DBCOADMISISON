@@ -1,276 +1,558 @@
-<app-payment></app-payment>
-<section class="dashboard" *ngIf="summary() as summary">
-  <section class="dashboard__panel dashboard__panel--hero" id="overview">
-    <div class="dashboard__hero-inner">
-      <div class="dashboard__hero-avatar" *ngIf="profile() as p">
-        <img *ngIf="profilePhotoUrl()" [src]="profilePhotoUrl()" [alt]="p.fullName" />
-        <span *ngIf="!profilePhotoUrl()">{{ p.fullName.charAt(0) }}</span>
+<div class="mb-6">
+  <app-payment></app-payment>
+</div>
+
+@if (summary(); as summary) {
+  <div class="student-dash relative flex w-full max-w-none flex-col gap-6 pb-4">
+    <!-- 1. Payment urgency (highest priority when fee due) -->
+    @if (summary.fees.canPay && summary.fees.remaining > 0) {
+      <section
+        class="student-dash__payment-urgent rounded-2xl border border-amber-400/50 bg-gradient-to-r from-amber-50 via-orange-50/95 to-amber-50 p-5 shadow-lg shadow-amber-900/10 sm:p-6"
+        role="alert"
+        aria-live="polite"
+        id="payment-urgent"
+      >
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div class="flex min-w-0 gap-3">
+            <span
+              class="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md"
+              aria-hidden="true"
+            >
+              <iconify-icon icon="solar:danger-triangle-bold" class="text-2xl"></iconify-icon>
+            </span>
+            <div class="min-w-0">
+              <h2 class="m-0 text-lg font-bold text-amber-950 sm:text-xl">Application fee payment required</h2>
+              <p class="mt-1 text-[0.95rem] font-semibold text-amber-950/90">
+                Amount due:
+                <span class="tabular-nums">₹{{ summary.fees.remaining | number: '1.0-0' }}</span>
+              </p>
+              <p class="mt-2 text-[0.9rem] leading-relaxed text-amber-950/85">
+                Complete payment to finalize your application. Applications without payment may be
+                <strong>rejected or not considered</strong> for admission. Use a stable internet connection and complete
+                the payment window in one session.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="student-dash__btn-pay inline-flex w-full shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#1b5e9d] to-[#0f2847] px-6 py-3.5 text-[0.95rem] font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 sm:w-auto sm:min-w-[160px]"
+            (click)="startPayment()"
+          >
+            Pay now — ₹{{ summary.fees.remaining | number: '1.0-0' }}
+          </button>
+        </div>
+      </section>
+    }
+
+    <!-- 2. Hero + status strip -->
+    <section
+      class="student-dash__hero relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-slate-950 via-[#0c2844] to-cyan-700 p-6 text-slate-50 shadow-[0_24px_60px_-12px_rgba(8,145,178,0.38)] ring-1 ring-white/10 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-7"
+      id="overview"
+    >
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_100%_-10%,rgba(34,211,238,0.22),transparent_55%)]"
+        aria-hidden="true"
+      ></div>
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_0%_100%,rgba(59,130,246,0.18),transparent_50%)]"
+        aria-hidden="true"
+      ></div>
+      <div class="relative flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+        @if (profile(); as p) {
+          <div
+            class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/25 text-2xl font-bold shadow-lg ring-2 ring-white/35"
+          >
+            @if (profilePhotoUrl()) {
+              <img [src]="profilePhotoUrl()" [alt]="p.fullName" class="h-full w-full object-cover" />
+            } @else {
+              {{ p.fullName.charAt(0) }}
+            }
+          </div>
+        }
+        <div class="min-w-0 flex-1">
+          <h1 class="text-2xl font-bold tracking-tight sm:text-[1.85rem]">
+            Welcome back, {{ profile()?.fullName ?? 'Applicant' }}
+          </h1>
+          <p class="mt-1 text-[0.95rem] text-white/90">
+            Application: <strong class="text-white">{{ profile()?.uniqueId ?? '—' }}</strong>
+          </p>
+          <p class="mt-0.5 text-[0.95rem] text-white/90">
+            Shift: <strong class="text-white">{{ shiftLabel() }}</strong>
+          </p>
+          @if (profileCompletionPercent() !== null) {
+            <div class="mt-3 max-w-[280px]">
+              <div class="mb-1 flex justify-between text-[0.85rem] text-white/95">
+                <span>Form progress</span>
+                <span>{{ profileCompletionPercent() }}%</span>
+              </div>
+              <div class="h-2 overflow-hidden rounded-full bg-white/30">
+                <div
+                  class="h-full rounded-full bg-white transition-[width] duration-300"
+                  [style.width.%]="profileCompletionPercent()"
+                ></div>
+              </div>
+            </div>
+          }
+        </div>
       </div>
-      <div class="dashboard__hero-text">
-        <h1>Welcome back, {{ profile()?.fullName ?? 'Applicant' }} 👋</h1>
-        <p class="dashboard__subtitle">
-          Application Number: <strong>{{ profile()?.uniqueId ?? '—' }}</strong>
-        </p>
-        <p class="dashboard__subtitle">
-          Preferred Shift: <strong>{{ shiftLabel() }}</strong>
-        </p>
-        <div class="dashboard__progress-wrap" *ngIf="profileCompletionPercent() !== null">
-          <div class="dashboard__progress-label">
-            <span>Profile Completion</span>
-            <span>{{ profileCompletionPercent() }}%</span>
-          </div>
-          <div class="dashboard__progress-bar">
-            <div class="dashboard__progress-fill" [style.width.%]="profileCompletionPercent()"></div>
-          </div>
+      <div class="relative flex w-full flex-col gap-2 sm:w-auto sm:min-w-[200px]">
+        @if (nextGuidance().ctaAction === 'pay') {
+          <button
+            type="button"
+            class="inline-flex w-full items-center justify-center rounded-full border border-white/25 bg-white px-6 py-3 text-center text-[0.95rem] font-semibold text-[#0c4a6e] shadow-[0_4px_20px_rgba(255,255,255,0.25)] transition hover:-translate-y-0.5 hover:bg-cyan-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
+            (click)="runGuidanceAction()"
+          >
+            {{ nextGuidance().ctaLabel }}
+          </button>
+        } @else if (nextGuidance().ctaRouterLink) {
+          <a
+            [routerLink]="nextGuidance().ctaRouterLink!"
+            class="inline-flex w-full items-center justify-center rounded-full border border-white/25 bg-white px-6 py-3 text-center text-[0.95rem] font-semibold text-[#0c4a6e] no-underline shadow-[0_4px_20px_rgba(255,255,255,0.25)] transition hover:-translate-y-0.5 hover:bg-cyan-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
+          >
+            {{ nextGuidance().ctaLabel }}
+          </a>
+        }
+      </div>
+    </section>
+
+    <!-- Quick status chips -->
+    <div
+      class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch"
+      aria-label="Application snapshot"
+    >
+      <div class="student-dash__chip flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm">
+        <iconify-icon icon="solar:clipboard-list-bold" class="text-2xl text-[#1b5e9d] shrink-0" aria-hidden="true"></iconify-icon>
+        <div class="min-w-0">
+          <p class="font-semibold text-slate-900">Profile</p>
+          <p class="text-sm text-slate-600">
+            @if (profileCompletionPercent() !== null) {
+              {{ profileCompletionPercent() }}% complete
+            } @else {
+              —
+            }
+          </p>
+        </div>
+      </div>
+      <div class="student-dash__chip flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm">
+        <iconify-icon icon="solar:chart-2-bold" class="text-2xl text-[#1b5e9d] shrink-0" aria-hidden="true"></iconify-icon>
+        <div class="min-w-0">
+          <p class="font-semibold text-slate-900">Application</p>
+          <p class="truncate text-sm text-slate-600">{{ selectionStatus() }}</p>
+        </div>
+      </div>
+      <div class="student-dash__chip flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm">
+        <iconify-icon icon="solar:card-bold" class="text-2xl text-[#1b5e9d] shrink-0" aria-hidden="true"></iconify-icon>
+        <div class="min-w-0">
+          <p class="font-semibold text-slate-900">Fee</p>
+          <p class="text-sm" [class.text-rose-700]="summary.fees.remaining > 0" [class.text-emerald-700]="summary.fees.remaining <= 0">
+            {{ summary.fees.status }}
+            @if (summary.fees.remaining > 0) {
+              <span class="tabular-nums"> · ₹{{ summary.fees.remaining | number: '1.0-0' }} due</span>
+            }
+          </p>
         </div>
       </div>
     </div>
-    <button routerLink="/app/profile/application" class="dashboard__cta">
-      Continue Application
-    </button>
-  </section>
 
-  <section class="dashboard__quick-actions" *ngIf="incompleteSteps().length || paymentPending()">
-    <h2 class="dashboard__quick-title">Quick Actions</h2>
-    <div class="dashboard__quick-grid">
-      <a *ngIf="incompleteSteps().length" routerLink="/app/profile/application" class="dashboard__quick-card">Complete Profile</a>
-      <a routerLink="/app/documents" class="dashboard__quick-card">Upload Documents</a>
-      <button *ngIf="paymentPending()" type="button" class="dashboard__quick-card" (click)="startPayment()">Pay Fees</button>
-    </div>
-  </section>
+    <!-- Next step guidance -->
+    <section
+      class="student-dash__next rounded-2xl border p-5 sm:p-6"
+      [class.student-dash__next--critical]="nextGuidance().urgency === 'critical'"
+      [class.student-dash__next--high]="nextGuidance().urgency === 'high'"
+      [class.border-slate-200/80]="nextGuidance().urgency === 'normal'"
+      [class.bg-white]="nextGuidance().urgency === 'normal'"
+      [class.shadow-md]="nextGuidance().urgency === 'normal'"
+    >
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div class="min-w-0">
+          <p class="mb-1 text-[0.7rem] font-bold uppercase tracking-[0.12em] text-slate-500">Recommended next step</p>
+          <h2 class="text-lg font-bold text-slate-900 sm:text-xl">{{ nextGuidance().title }}</h2>
+          <p class="mt-2 max-w-[65ch] text-[0.95rem] leading-relaxed text-slate-600">{{ nextGuidance().body }}</p>
+        </div>
+        <div class="flex shrink-0 flex-col gap-2 sm:items-end">
+          @if (nextGuidance().ctaAction === 'pay') {
+            <button
+              type="button"
+              class="inline-flex w-full items-center justify-center rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-amber-950 shadow-md transition hover:bg-amber-400 sm:w-auto"
+              (click)="runGuidanceAction()"
+            >
+              {{ nextGuidance().ctaLabel }}
+            </button>
+          } @else if (nextGuidance().ctaRouterLink) {
+            <a
+              [routerLink]="nextGuidance().ctaRouterLink!"
+              class="inline-flex w-full items-center justify-center rounded-xl bg-[#1b5e9d] px-5 py-3 text-sm font-bold text-white no-underline shadow-md transition hover:bg-[#164a80] sm:w-auto"
+            >
+              {{ nextGuidance().ctaLabel }}
+            </a>
+          }
+        </div>
+      </div>
+    </section>
 
-  <div
-    class="dashboard__alert dashboard__alert--payment"
-    *ngIf="summary.fees.canPay"
-    role="status"
-    aria-live="polite"
-  >
-    <strong>Payment pending:</strong> Your application fee of ₹600 is due. Use the Pay Now button below to complete your submission.
-  </div>
+    <!-- Journey progress -->
+    <section class="student-dash__journey rounded-2xl border border-slate-200/70 bg-slate-50/90 p-5 sm:p-6" aria-label="Admission steps">
+      <h2 class="mb-4 flex items-center gap-2 text-base font-bold text-slate-900">
+        <iconify-icon icon="solar:route-bold" class="text-xl text-[#1b5e9d]" aria-hidden="true"></iconify-icon>
+        Your admission journey
+      </h2>
+      <ol class="student-dash__journey-list m-0 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-4">
+        @for (j of admissionJourney().steps; track j.id) {
+          <li
+            class="student-dash__journey-step rounded-xl border px-3 py-3 sm:px-4"
+            [class.student-dash__journey-step--complete]="j.state === 'complete'"
+            [class.student-dash__journey-step--current]="j.state === 'current'"
+            [class.student-dash__journey-step--pending]="j.state === 'pending'"
+          >
+            <div class="flex items-start gap-2">
+              @if (j.state === 'complete') {
+                <iconify-icon icon="solar:check-circle-bold" class="mt-0.5 text-xl text-emerald-600 shrink-0" aria-hidden="true"></iconify-icon>
+              } @else if (j.state === 'current') {
+                <iconify-icon icon="solar:play-circle-bold" class="mt-0.5 text-xl text-amber-600 shrink-0" aria-hidden="true"></iconify-icon>
+              } @else {
+                <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-slate-300" aria-hidden="true"></span>
+              }
+              <div class="min-w-0">
+                <p class="font-semibold leading-snug text-slate-900">{{ j.title }}</p>
+                <p class="mt-0.5 text-xs leading-snug text-slate-600">{{ j.hint }}</p>
+              </div>
+            </div>
+          </li>
+        }
+      </ol>
+    </section>
 
-  <section class="dashboard__panel dashboard__panel--status" id="selection-status" [attr.data-status]="selectionStatus()">
-    <header class="dashboard__panel-header">
-      <h2>Application Status</h2>
-      <span class="badge" 
-            [class.badge--approved]="selectionStatus() === 'Approved'"
-            [class.badge--rejected]="selectionStatus() === 'Rejected'"
-            [class.badge--waiting]="selectionStatus() === 'WaitingList'"
-            [class.badge--exam]="selectionStatus() === 'EntranceExam'"
-            [class.badge--info]="selectionStatus() === 'Submitted' || selectionStatus() === 'Under Review'">
-        {{ selectionStatus() }}
-      </span>
-    </header>
-    <div class="dashboard__timeline">
-      <div class="dashboard__timeline-item" [class.done]="statusStepDone('Submitted')">
-        <span class="dashboard__timeline-dot"></span>
-        <span>Submitted</span>
+    <!-- Dynamic quick actions -->
+    @if (quickActionItems().length) {
+      <section aria-label="Quick actions">
+        <h2 class="mb-3 text-base font-bold text-slate-900">Quick actions</h2>
+        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          @for (qa of quickActionItems(); track qa.id) {
+            @if (qa.action === 'pay') {
+              <button
+                type="button"
+                class="student-dash__qa inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-amber-400/80 bg-amber-50 px-5 py-3.5 text-[0.9rem] font-bold text-amber-950 shadow-sm transition hover:bg-amber-100 sm:w-auto"
+                (click)="startPayment()"
+              >
+                <iconify-icon [icon]="qa.icon" class="text-xl shrink-0" aria-hidden="true"></iconify-icon>
+                {{ qa.label }}
+              </button>
+            } @else {
+              <a
+                [routerLink]="qa.routerLink!"
+                class="student-dash__qa inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200/90 bg-white px-5 py-3 text-[0.9rem] font-semibold text-blue-950 shadow-sm no-underline transition hover:border-slate-300 hover:bg-slate-50 hover:shadow sm:w-auto"
+              >
+                <iconify-icon [icon]="qa.icon" class="text-xl text-[#1b5e9d] shrink-0" aria-hidden="true"></iconify-icon>
+                {{ qa.label }}
+              </a>
+            }
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Application status -->
+    <section
+      class="student-dash__panel rounded-2xl border border-slate-200/50 border-l-4 border-l-slate-200 bg-white/95 p-6 shadow-[0_8px_30px_-8px_rgba(15,23,42,0.08)] backdrop-blur-sm transition-shadow hover:shadow-[0_12px_40px_-10px_rgba(8,145,178,0.12)] data-[status=Approved]:border-l-emerald-500 data-[status=Rejected]:border-l-red-500 data-[status=WaitingList]:border-l-amber-400 data-[status=EntranceExam]:border-l-blue-500 data-[status=Approved]:bg-gradient-to-br data-[status=Approved]:from-emerald-50 data-[status=Approved]:to-white data-[status=Rejected]:bg-gradient-to-br data-[status=Rejected]:from-red-50 data-[status=Rejected]:to-white data-[status=WaitingList]:bg-gradient-to-br data-[status=WaitingList]:from-amber-50 data-[status=WaitingList]:to-white data-[status=EntranceExam]:bg-gradient-to-br data-[status=EntranceExam]:from-blue-50 data-[status=EntranceExam]:to-white"
+      id="selection-status"
+      [attr.data-status]="selectionStatus()"
+    >
+      <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-[1.35rem] font-semibold text-[#1b5e9d]">Application status</h2>
+        <span
+          class="inline-flex items-center justify-center rounded-full px-4 py-1.5 text-[0.82rem] font-semibold"
+          [ngClass]="{
+            'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200/80': selectionStatus() === 'Approved',
+            'bg-red-100 text-red-800 ring-1 ring-red-200/80': selectionStatus() === 'Rejected',
+            'bg-amber-100 text-amber-900 ring-1 ring-amber-200/80': selectionStatus() === 'WaitingList',
+            'bg-blue-100 text-blue-900 ring-1 ring-blue-200/80': selectionStatus() === 'EntranceExam',
+            'bg-slate-200 text-slate-800':
+              selectionStatus() === 'Submitted' || selectionStatus() === 'Under Review'
+          }"
+        >
+          {{ selectionStatus() }}
+        </span>
+      </header>
+      <div class="mb-4 flex flex-wrap items-center gap-4">
+        <div
+          class="flex items-center gap-2 text-sm"
+          [class.font-semibold]="selectionStatus() === 'Under Review'"
+          [class.text-blue-800]="selectionStatus() === 'Under Review'"
+          [class.text-emerald-600]="statusStepDone('Submitted')"
+        >
+          <span
+            class="h-2.5 w-2.5 shrink-0 rounded-full bg-slate-200"
+            [class.bg-emerald-500]="statusStepDone('Submitted')"
+          ></span>
+          <span>Submitted</span>
+        </div>
+        <div
+          class="flex items-center gap-2 text-sm text-slate-500"
+          [class.font-semibold]="selectionStatus() === 'Under Review'"
+          [class.text-blue-800]="selectionStatus() === 'Under Review'"
+          [class.text-emerald-600]="statusStepDone('Under Review')"
+        >
+          <span
+            class="h-2.5 w-2.5 shrink-0 rounded-full bg-slate-200"
+            [class.bg-emerald-500]="statusStepDone('Under Review')"
+            [class.bg-blue-500]="selectionStatus() === 'Under Review'"
+            [class.ring-4]="selectionStatus() === 'Under Review'"
+            [class.ring-blue-500/25]="selectionStatus() === 'Under Review'"
+          ></span>
+          <span>Under review</span>
+        </div>
+        <div
+          class="flex items-center gap-2 text-sm text-slate-500"
+          [class.font-semibold]="selectionStatus() === 'Approved'"
+          [class.text-blue-800]="selectionStatus() === 'Approved'"
+          [class.text-emerald-600]="statusStepDone('Approved')"
+        >
+          <span
+            class="h-2.5 w-2.5 shrink-0 rounded-full bg-slate-200"
+            [class.bg-emerald-500]="statusStepDone('Approved')"
+            [class.bg-blue-500]="selectionStatus() === 'Approved'"
+            [class.ring-4]="selectionStatus() === 'Approved'"
+            [class.ring-blue-500/25]="selectionStatus() === 'Approved'"
+          ></span>
+          <span>Approved</span>
+        </div>
       </div>
-      <div class="dashboard__timeline-item" [class.done]="statusStepDone('Under Review')" [class.current]="selectionStatus() === 'Under Review'">
-        <span class="dashboard__timeline-dot"></span>
-        <span>Under Review</span>
+      <div class="my-4">
+        <p class="text-[0.92rem] leading-relaxed text-slate-600">{{ selectionNote() }}</p>
+        @if (selectionStatus() === 'Approved') {
+          <div class="mt-4 rounded-lg border border-emerald-200/80 bg-white/60 p-4">
+            <p class="mt-0 font-semibold text-emerald-700">
+              Next steps: please check your email for admission offer letter and payment instructions.
+            </p>
+            <a
+              routerLink="/app/offer"
+              class="mt-4 inline-flex rounded-full bg-gradient-to-r from-[#1b5e9d] to-[#284b7a] px-7 py-3 text-[0.95rem] font-semibold text-white no-underline shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              View admission offer
+            </a>
+          </div>
+        }
+        @if (selectionStatus() === 'EntranceExam') {
+          <p class="mt-4 font-semibold text-blue-700">
+            Exam details: check your email and this dashboard for exam date, time, and venue information.
+          </p>
+        }
       </div>
-      <div class="dashboard__timeline-item" [class.done]="statusStepDone('Approved')" [class.current]="selectionStatus() === 'Approved'">
-        <span class="dashboard__timeline-dot"></span>
-        <span>Approved</span>
-      </div>
-    </div>
-    <div class="dashboard__status-message">
-      <p class="dashboard__text">{{ selectionNote() }}</p>
-      <div class="dashboard__status-actions" *ngIf="selectionStatus() === 'Approved'">
-        <p class="dashboard__hint" style="margin-top: 1rem; color: #16a34a; font-weight: 600;">
-          ✓ Next Steps: Please check your email for admission offer letter and payment instructions.
+      <p class="text-[0.92rem] text-slate-600">
+        Preferred shift: <strong class="text-slate-800">{{ shiftLabel() }}</strong>
+      </p>
+    </section>
+
+    <!-- Course details -->
+    @if (courseSelection(); as cs) {
+      <section
+        class="student-dash__panel rounded-2xl border border-emerald-300/60 bg-gradient-to-b from-emerald-50/95 to-white p-6 shadow-[0_8px_30px_-8px_rgba(15,23,42,0.07)] backdrop-blur-sm"
+        id="course-details"
+      >
+        <header class="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="flex items-center gap-2.5 text-[1.35rem] font-semibold text-emerald-900">
+            <iconify-icon icon="solar:diploma-bold" class="text-[1.5rem] text-emerald-800" aria-hidden="true"></iconify-icon>
+            Your selected course details
+          </h2>
+        </header>
+        @if (profile(); as p) {
+          <p class="mb-5 text-[0.9rem] leading-relaxed text-slate-600">
+            <span>Application reference: <strong class="text-slate-800">{{ p.uniqueId }}</strong></span>
+            @if (cs.applicationFeePaidOnUtc) {
+              <span>
+                · Fee paid:
+                <strong>{{ cs.applicationFeePaidOnUtc | date: 'medium' }}</strong>
+              </span>
+            }
+          </p>
+        }
+        <dl class="grid gap-3">
+          <div class="grid grid-cols-[minmax(4rem,110px)_1fr] items-start gap-x-4 gap-y-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:px-4">
+            <dt class="text-[0.78rem] font-bold uppercase tracking-wide text-slate-500">Shift</dt>
+            <dd class="text-[0.95rem] font-semibold text-slate-900">{{ cs.preferredShiftLabel }}</dd>
+          </div>
+          <div class="grid grid-cols-[minmax(4rem,110px)_1fr] items-start gap-x-4 gap-y-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:px-4">
+            <dt class="text-[0.78rem] font-bold uppercase tracking-wide text-slate-500">Major</dt>
+            <dd class="text-[0.95rem] font-semibold text-slate-900">{{ cs.majorSubject }}</dd>
+          </div>
+          <div class="grid grid-cols-[minmax(4rem,110px)_1fr] items-start gap-x-4 gap-y-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:px-4">
+            <dt class="text-[0.78rem] font-bold uppercase tracking-wide text-slate-500">Minor</dt>
+            <dd class="text-[0.95rem] font-semibold text-slate-900">{{ cs.minorSubject }}</dd>
+          </div>
+        </dl>
+        <h3 class="mb-2 mt-5 text-base font-bold text-[#1b5e9d]">Electives</h3>
+        <dl class="grid gap-3">
+          @for (row of electiveRows(); track row.key) {
+            <div class="grid grid-cols-[minmax(3rem,72px)_1fr] items-start gap-x-4 gap-y-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:px-4">
+              <dt class="text-[0.78rem] font-bold uppercase tracking-wide text-slate-500">{{ row.label }}</dt>
+              <dd class="text-[0.95rem] font-semibold leading-snug text-slate-900" [attr.title]="row.tooltip || null">
+                @if (electiveDisplay(row.raw); as disp) {
+                  <strong>{{ disp.name }}</strong>
+                  @if (disp.showCode) {
+                    <span class="font-medium text-slate-500"> ({{ disp.code }})</span>
+                  }
+                }
+              </dd>
+            </div>
+          }
+        </dl>
+        <p class="mb-4 mt-4 text-[0.85rem] leading-relaxed text-slate-500">
+          These selections were saved with your submitted application and cannot be changed here.
         </p>
         <button
           type="button"
-          class="dashboard__cta dashboard__cta--secondary"
-          routerLink="/app/offer"
-          style="margin-top: 1rem;"
+          class="inline-flex rounded-full bg-gradient-to-r from-[#1b5e9d] to-[#284b7a] px-7 py-3 text-[0.95rem] font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+          (click)="downloadCourseSummary()"
         >
-          View Admission Offer
+          Download application summary
         </button>
-      </div>
-      <div class="dashboard__status-actions" *ngIf="selectionStatus() === 'EntranceExam'">
-        <p class="dashboard__hint" style="margin-top: 1rem; color: #2563eb; font-weight: 600;">
-          📅 Exam Details: Check your email and this dashboard for exam date, time, and venue information.
-        </p>
-      </div>
-    </div>
-    <p class="dashboard__meta">
-      Preferred Shift: <strong>{{ shiftLabel() }}</strong>
-    </p>
-  </section>
+      </section>
+    }
 
-  <section
-    class="dashboard__panel dashboard__panel--courses"
-    id="course-details"
-    *ngIf="courseSelection() as cs"
-  >
-    <header class="dashboard__panel-header dashboard__panel-header--courses">
-      <h2>
-        <span class="dashboard__course-icon" aria-hidden="true">🎓</span>
-        Your Selected Course Details
-      </h2>
-    </header>
-    <p class="dashboard__course-meta" *ngIf="profile() as p">
-      <span>Application reference: <strong>{{ p.uniqueId }}</strong></span>
-      <span *ngIf="cs.applicationFeePaidOnUtc" class="dashboard__course-meta-sep">
-        · Fee paid: <strong>{{ cs.applicationFeePaidOnUtc | date: 'medium' }}</strong>
-      </span>
-    </p>
-    <dl class="dashboard__course-dl">
-      <div>
-        <dt>Shift</dt>
-        <dd>{{ cs.preferredShiftLabel }}</dd>
-      </div>
-      <div>
-        <dt>Major</dt>
-        <dd>{{ cs.majorSubject }}</dd>
-      </div>
-      <div>
-        <dt>Minor</dt>
-        <dd>{{ cs.minorSubject }}</dd>
-      </div>
-    </dl>
-    <h3 class="dashboard__course-subheading">Electives</h3>
-    <dl class="dashboard__course-dl dashboard__course-dl--stack">
-      <div>
-        <dt>MDC</dt>
-        <dd
-          class="dashboard__elective-dd"
-          [attr.title]="electiveTooltip(cs.mdc) || null"
-        >
-          <ng-container *ngIf="electiveDisplay(cs.mdc) as mdc">
-            <strong class="dashboard__elective-name">{{ mdc.name }}</strong>
-            <span *ngIf="mdc.showCode" class="dashboard__elective-code"> ({{ mdc.code }})</span>
-          </ng-container>
-        </dd>
-      </div>
-      <div>
-        <dt>AEC</dt>
-        <dd
-          class="dashboard__elective-dd"
-          [attr.title]="electiveTooltip(cs.aec) || null"
-        >
-          <ng-container *ngIf="electiveDisplay(cs.aec) as aec">
-            <strong class="dashboard__elective-name">{{ aec.name }}</strong>
-            <span *ngIf="aec.showCode" class="dashboard__elective-code"> ({{ aec.code }})</span>
-          </ng-container>
-        </dd>
-      </div>
-      <div>
-        <dt>SEC</dt>
-        <dd
-          class="dashboard__elective-dd"
-          [attr.title]="electiveTooltip(cs.sec) || null"
-        >
-          <ng-container *ngIf="electiveDisplay(cs.sec) as sec">
-            <strong class="dashboard__elective-name">{{ sec.name }}</strong>
-            <span *ngIf="sec.showCode" class="dashboard__elective-code"> ({{ sec.code }})</span>
-          </ng-container>
-        </dd>
-      </div>
-      <div>
-        <dt>VAC</dt>
-        <dd
-          class="dashboard__elective-dd"
-          [attr.title]="electiveTooltip(cs.vac) || null"
-        >
-          <ng-container *ngIf="electiveDisplay(cs.vac) as vac">
-            <strong class="dashboard__elective-name">{{ vac.name }}</strong>
-            <span *ngIf="vac.showCode" class="dashboard__elective-code"> ({{ vac.code }})</span>
-          </ng-container>
-        </dd>
-      </div>
-    </dl>
-    <p class="dashboard__course-hint">
-      These selections were saved with your submitted application and cannot be changed here.
-    </p>
-    <button type="button" class="dashboard__cta dashboard__cta--secondary" (click)="downloadCourseSummary()">
-      Download application summary
-    </button>
-  </section>
-
-  <section class="dashboard__panel" id="payment">
-    <header class="dashboard__panel-header">
-      <h2>Payment Details</h2>
-      <span class="badge" [class.badge--pending]="summary.fees.remaining > 0">
-        {{ summary.fees.status }}
-      </span>
-    </header>
-    <div class="dashboard__payment-cards">
-      <div class="dashboard__payment-card">
-        <span class="label">Total Fee</span>
-        <span class="value">₹{{ summary.fees.amountDue | number : '1.0-0' }}</span>
-      </div>
-      <div class="dashboard__payment-card">
-        <span class="label">Paid</span>
-        <span class="value">₹{{ summary.fees.amountPaid | number : '1.0-0' }}</span>
-      </div>
-      <div class="dashboard__payment-card dashboard__payment-card--outstanding">
-        <span class="label">Remaining</span>
-        <span class="value">₹{{ summary.fees.remaining | number : '1.0-0' }}</span>
-      </div>
-    </div>
-    <button
-      type="button"
-      class="dashboard__cta dashboard__cta--secondary"
-      *ngIf="summary.fees.canPay"
-      (click)="startPayment()"
+    <!-- Payment details -->
+    <section
+      class="student-dash__panel student-dash__payment-card rounded-2xl border border-slate-200/50 bg-white/95 p-6 shadow-[0_8px_30px_-8px_rgba(15,23,42,0.08)] backdrop-blur-sm"
+      id="payment"
     >
-      Pay Now
-    </button>
-    <div *ngIf="summary.fees.status === 'Completed'" class="dashboard__payment-success">
-      <p class="dashboard__hint" style="color: #16a34a; font-weight: 500;">
-        ✓ Payment completed successfully!
-      </p>
-      <p class="dashboard__hint" *ngIf="summary.fees.transactionId" style="font-size: 0.9rem; margin-top: 0.5rem;">
-        Transaction ID: <strong>{{ summary.fees.transactionId }}</strong>
-      </p>
-    </div>
-    <p class="dashboard__hint" *ngIf="summary.fees.canPay">
-      Payment of ₹{{ summary.fees.amountDue | number : '1.0-0' }} is required to complete your application. Please proceed with the payment at the earliest.
-    </p>
-    <p class="dashboard__hint" *ngIf="!summary.fees.canPay && summary.fees.status !== 'Completed'">
-      The payment option will be available after all application steps are completed and submitted.
-    </p>
-  </section>
-
-  <section class="dashboard__panel" id="documents">
-    <header class="dashboard__panel-header">
-      <h2>Document Checklist</h2>
-      <span class="dashboard__doc-count" *ngIf="documents().length">
-        {{ documentsUploadedCount() }}/{{ documents().length }} uploaded
-      </span>
-    </header>
-    <ul class="dashboard__list">
-      <li *ngFor="let doc of documents()" [class.is-complete]="doc.isComplete">
-        <span class="dashboard__list-icon">{{ doc.isComplete ? '✔' : '📄' }}</span>
-        <div>
-          <strong>{{ doc.name }}</strong>
-          <p>{{ doc.description }}</p>
+      <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-[1.35rem] font-semibold text-[#1b5e9d]">Payment details</h2>
+        <span
+          class="inline-flex items-center justify-center rounded-full bg-slate-200 px-4 py-1.5 text-[0.82rem] font-semibold text-slate-800"
+          [class.bg-emerald-100]="summary.fees.status === 'Completed'"
+          [class.text-emerald-900]="summary.fees.status === 'Completed'"
+          [class.bg-rose-100]="summary.fees.remaining > 0"
+          [class.text-rose-900]="summary.fees.remaining > 0"
+          [class.ring-1]="summary.fees.remaining > 0 || summary.fees.status === 'Completed'"
+          [class.ring-rose-200]="summary.fees.remaining > 0"
+          [class.ring-emerald-200]="summary.fees.status === 'Completed'"
+        >
+          {{ summary.fees.status }}
+        </span>
+      </header>
+      <div class="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <span class="block text-[0.78rem] font-medium uppercase tracking-wider text-slate-500">Total fee</span>
+          <span class="mt-1 block text-xl font-bold tabular-nums text-slate-900">₹{{ summary.fees.amountDue | number: '1.0-0' }}</span>
         </div>
-        <span>{{ doc.status }}</span>
-      </li>
-      <li *ngIf="documents().length === 0">
-        No document requirements available yet. Check back soon.
-      </li>
-    </ul>
-  </section>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <span class="block text-[0.78rem] font-medium uppercase tracking-wider text-slate-500">Paid</span>
+          <span class="mt-1 block text-xl font-bold tabular-nums text-slate-900">₹{{ summary.fees.amountPaid | number: '1.0-0' }}</span>
+        </div>
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <span class="block text-[0.78rem] font-medium uppercase tracking-wider text-slate-500">Remaining</span>
+          <span class="mt-1 block text-xl font-bold tabular-nums text-rose-900">₹{{ summary.fees.remaining | number: '1.0-0' }}</span>
+        </div>
+      </div>
+      @if (summary.fees.canPay) {
+        <button
+          type="button"
+          class="mb-4 inline-flex w-full min-h-[48px] items-center justify-center rounded-xl bg-gradient-to-r from-[#1b5e9d] to-[#284b7a] px-7 py-3 text-[0.95rem] font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1b5e9d] sm:w-auto"
+          (click)="startPayment()"
+        >
+          Pay now — ₹{{ summary.fees.remaining | number: '1.0-0' }}
+        </button>
+      }
+      @if (summary.fees.status === 'Completed') {
+        <div class="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 p-4">
+          <p class="font-medium text-emerald-800">Payment completed successfully.</p>
+          @if (summary.fees.transactionId) {
+            <p class="mt-2 text-[0.9rem] text-slate-700">
+              Transaction ID: <strong>{{ summary.fees.transactionId }}</strong>
+            </p>
+          }
+        </div>
+      }
+      @if (summary.fees.canPay) {
+        <p class="text-[0.92rem] leading-relaxed text-slate-600">
+          Payment of <strong class="tabular-nums">₹{{ summary.fees.amountDue | number: '1.0-0' }}</strong> is required to complete your application. Please complete payment at the earliest to avoid delays.
+        </p>
+      }
+      @if (!summary.fees.canPay && summary.fees.status !== 'Completed') {
+        <p class="text-[0.92rem] leading-relaxed text-slate-600">
+          The payment option will be available after all application steps are completed and submitted.
+        </p>
+      }
+    </section>
 
-  <section
-    class="dashboard__panel"
-    id="notifications"
-    *ngIf="notifications().length"
-  >
-    <header class="dashboard__panel-header">
-      <h2><span class="dashboard__notif-icon" aria-hidden="true">🔔</span> Notifications</h2>
-    </header>
-    <ul class="dashboard__notifications">
-      <li *ngFor="let notification of notifications(); let i = index" [class.dashboard__notif--new]="i === 0">
-        <h3>{{ notification.title }} <span *ngIf="i === 0" class="dashboard__notif-badge">New</span></h3>
-        <p>{{ notification.message }}</p>
-        <span>{{ notification.createdOnUtc | date: 'medium' }}</span>
-      </li>
-    </ul>
-  </section>
-</section>
+    <!-- Documents -->
+    <section class="student-dash__panel rounded-2xl border border-slate-200/50 bg-white/95 p-6 shadow-[0_8px_30px_-8px_rgba(15,23,42,0.08)] backdrop-blur-sm" id="documents">
+      <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-[1.35rem] font-semibold text-[#1b5e9d]">Document checklist</h2>
+        @if (documents().length) {
+          <span
+            class="rounded-full px-3 py-1 text-[0.82rem] font-semibold"
+            [class.bg-emerald-100]="documentsUploadedCount() === documents().length"
+            [class.text-emerald-900]="documentsUploadedCount() === documents().length"
+            [class.bg-amber-100]="documentsUploadedCount() < documents().length"
+            [class.text-amber-950]="documentsUploadedCount() < documents().length"
+          >
+            {{ documentsUploadedCount() }}/{{ documents().length }} uploaded
+          </span>
+        }
+      </header>
+      <ul class="m-0 flex list-none flex-col gap-4 p-0">
+        @for (doc of documents(); track $index) {
+          <li
+            class="grid grid-cols-1 gap-3 rounded-2xl border border-slate-300/40 bg-slate-50/90 p-4 sm:grid-cols-[auto_1fr_auto] sm:items-start sm:gap-3"
+            [class.border-emerald-400/45]="doc.isComplete"
+            [class.bg-emerald-50/80]="doc.isComplete"
+          >
+            @if (doc.isComplete) {
+              <iconify-icon icon="solar:check-circle-bold" class="text-2xl text-emerald-600" aria-hidden="true"></iconify-icon>
+            } @else {
+              <iconify-icon icon="solar:document-text-bold" class="text-2xl text-amber-600" aria-hidden="true"></iconify-icon>
+            }
+            <div class="min-w-0">
+              <strong class="text-slate-900">{{ doc.name }}</strong>
+              <p class="mt-1 text-[0.92rem] leading-relaxed text-slate-600">{{ doc.description }}</p>
+            </div>
+            <span
+              class="text-sm font-semibold sm:text-right"
+              [class.text-emerald-600]="doc.isComplete"
+              [class.text-amber-700]="!doc.isComplete"
+            >{{ doc.status }}</span>
+          </li>
+        } @empty {
+          <li class="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-center text-slate-500">
+            No document requirements available yet. Check back soon.
+          </li>
+        }
+      </ul>
+    </section>
+
+    <!-- Notifications -->
+    @if (notifications().length) {
+      <section class="student-dash__panel rounded-2xl border border-slate-200/50 bg-white/95 p-6 shadow-[0_8px_30px_-8px_rgba(15,23,42,0.08)] backdrop-blur-sm" id="notifications">
+        <header class="mb-4">
+          <h2 class="flex items-center gap-2 text-[1.35rem] font-semibold text-[#1b5e9d]">
+            <iconify-icon icon="solar:bell-bold" class="text-[1.4rem]" aria-hidden="true"></iconify-icon>
+            Notifications
+          </h2>
+        </header>
+        <ul class="m-0 flex list-none flex-col gap-4 p-0">
+          @for (notification of notifications(); track $index; let i = $index) {
+            <li
+              class="rounded-xl border border-slate-200/80 bg-slate-50 p-4 pl-5"
+              [class.border-l-4]="i === 0"
+              [class.border-l-[#1b5e9d]]="i === 0"
+              [class.bg-sky-50/90]="i === 0"
+            >
+              <h3 class="m-0 text-slate-900">
+                {{ notification.title }}
+                @if (i === 0) {
+                  <span class="ml-2 inline-block rounded-full bg-[#1b5e9d] px-2 py-0.5 text-[0.7rem] font-semibold text-white">
+                    Latest
+                  </span>
+                }
+              </h3>
+              <p class="mt-1 text-slate-700">{{ notification.message }}</p>
+              <span class="mt-2 block text-[0.85rem] text-slate-600 opacity-80">{{
+                notification.createdOnUtc | date: 'medium'
+              }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  </div>
+}

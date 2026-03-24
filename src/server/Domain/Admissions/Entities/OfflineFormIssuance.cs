@@ -16,6 +16,12 @@ public class OfflineFormIssuance
 
     public decimal ApplicationFeeAmount { get; set; }
 
+    /// <summary>Canonical shift: ShiftI, ShiftII, or ShiftIII (set at issuance).</summary>
+    public string Shift { get; set; } = string.Empty;
+
+    /// <summary>Whether the student had applied for CUET at issuance.</summary>
+    public bool CuetApplied { get; set; }
+
     public DateTime IssuedOnUtc { get; set; }
 
     /// <summary>When the corresponding <see cref="StudentApplicantAccount"/> is created at receive.</summary>

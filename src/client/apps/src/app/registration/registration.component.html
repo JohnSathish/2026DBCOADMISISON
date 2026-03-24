@@ -1,4 +1,5 @@
 <div class="reg-page">
+  <div class="registration-container">
   <div class="reg-page__container">
     <!-- Left: Registration Form (flex: 2) -->
     <section class="reg-page__main">
@@ -119,64 +120,71 @@
               </ng-template>
             </label>
 
-            <div class="reg-field reg-field--full">
-              <span class="reg-field__label">Profile Photo *</span>
-              <div
-                class="reg-upload"
-                [class.reg-upload--active]="photoDropZoneActive"
-                [class.reg-upload--has-file]="photoPreview"
-                (dragover)="onPhotoDragOver($event)"
-                (dragleave)="onPhotoDragLeave($event)"
-                (drop)="onPhotoDrop($event)"
-                (click)="triggerPhotoInput(photoFileInput)"
-              >
-                <input
-                  #photoFileInput
-                  type="file"
-                  accept="image/jpeg,image/png"
-                  class="reg-upload__hidden"
-                  (change)="onProfilePhotoSelected($event)"
-                />
-                <img
-                  *ngIf="photoPreview"
-                  [src]="photoPreview"
-                  alt="Preview"
-                  class="reg-upload__preview"
-                />
-                <ng-container *ngIf="!photoPreview">
-                  <span class="reg-upload__text">Drag & drop your photo here or click to browse</span>
-                  <span class="reg-upload__hint">JPEG or PNG, max 2 MB</span>
-                </ng-container>
+            <div class="reg-photo-mobile-row">
+              <div class="reg-field reg-field--photo-block">
+                <span class="reg-field__label">Profile Photo *</span>
+                <div
+                  class="reg-upload"
+                  [class.reg-upload--active]="photoDropZoneActive"
+                  [class.reg-upload--has-file]="photoPreview"
+                  (dragover)="onPhotoDragOver($event)"
+                  (dragleave)="onPhotoDragLeave($event)"
+                  (drop)="onPhotoDrop($event)"
+                  (click)="triggerPhotoInput(photoFileInput)"
+                >
+                  <input
+                    #photoFileInput
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    class="reg-upload__hidden"
+                    (change)="onProfilePhotoSelected($event)"
+                  />
+                  <img
+                    *ngIf="photoPreview"
+                    [src]="photoPreview"
+                    alt="Preview"
+                    class="reg-upload__preview"
+                  />
+                  <ng-container *ngIf="!photoPreview">
+                    <span class="reg-upload__icon" aria-hidden="true">📷</span>
+                    <span class="reg-upload__text">Drag & drop your photo here or click to browse</span>
+                    <span class="reg-upload__hint">JPEG or PNG, max 2 MB</span>
+                  </ng-container>
+                </div>
+                <span class="reg-field__error" *ngIf="photoError">{{ photoError }}</span>
               </div>
-              <span class="reg-field__error" *ngIf="photoError">{{ photoError }}</span>
-            </div>
 
-            <label class="reg-field" [class.reg-field--invalid]="controlInvalid('mobileNumber')" [class.reg-field--valid]="controlValid('mobileNumber')">
-              <span class="reg-field__label">Mobile Number *</span>
-              <input
-                type="tel"
-                formControlName="mobileNumber"
-                autocomplete="tel"
-                placeholder="Enter contact number"
-                (input)="onMobileInput($event)"
-                class="reg-field__input"
-              />
-              <span class="reg-field__success" *ngIf="controlValid('mobileNumber')" aria-hidden="true">✓</span>
-              <span class="reg-field__hint">
-                Student's number, linked to Aadhaar—not a parent's number.
-              </span>
-              <span
-                class="reg-field__error"
-                *ngIf="form.get('mobileNumber')?.hasError('duplicate'); else mobileGeneralError"
+              <label
+                class="reg-field reg-field--mobile-block"
+                [class.reg-field--invalid]="controlInvalid('mobileNumber')"
+                [class.reg-field--valid]="controlValid('mobileNumber')"
               >
-                An account already exists for this mobile number.
-              </span>
-              <ng-template #mobileGeneralError>
-                <span class="reg-field__error" *ngIf="controlInvalid('mobileNumber')">
-                  Enter a valid 10-digit contact number.
+                <span class="reg-field__label">Mobile Number *</span>
+                <input
+                  type="tel"
+                  formControlName="mobileNumber"
+                  autocomplete="tel"
+                  placeholder="Enter contact number"
+                  (input)="onMobileInput($event)"
+                  class="reg-field__input"
+                />
+                <span class="reg-field__success" *ngIf="controlValid('mobileNumber')" aria-hidden="true">✓</span>
+                <span class="reg-field__hint">
+                  Student's number, linked to Aadhaar—not a parent's number.
                 </span>
-              </ng-template>
-            </label>
+                <span
+                  class="reg-field__error"
+                  *ngIf="form.get('mobileNumber')?.hasError('duplicate'); else mobileGeneralError"
+                >
+                  An account already exists for this mobile number.
+                </span>
+                <ng-template #mobileGeneralError>
+                  <span class="reg-field__error" *ngIf="controlInvalid('mobileNumber')">
+                    Enter a valid 10-digit contact number.
+                  </span>
+                </ng-template>
+              </label>
+            </div>
           </div>
 
           <label class="reg-terms">
@@ -264,7 +272,9 @@
             </ul>
           </div>
 
-          <a href="#" class="reg-instructions__download" download>Download Instructions PDF</a>
+          <p class="reg-instructions__download-note">
+            A printable instructions PDF can be requested from the admissions office.
+          </p>
 
           <div class="reg-instructions__help">
             <strong>Need help?</strong> Contact the admissions office during working hours.
@@ -317,12 +327,15 @@
         </div>
 
         <div class="reg-instructions__footer">
-          <a href="#" class="reg-instructions__download" download>Download Instructions PDF</a>
+          <p class="reg-instructions__download-note">
+            A printable instructions PDF can be requested from the admissions office.
+          </p>
           <div class="reg-instructions__help">
             <strong>Need help?</strong> Contact the admissions office during working hours.
           </div>
         </div>
       </div>
     </aside>
+  </div>
   </div>
 </div>

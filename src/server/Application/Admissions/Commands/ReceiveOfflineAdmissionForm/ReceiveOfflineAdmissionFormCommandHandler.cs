@@ -1,3 +1,4 @@
+using ERP.Application.Admissions;
 using ERP.Application.Admissions.Interfaces;
 using ERP.Domain.Admissions.Entities;
 using MediatR;
@@ -7,8 +8,6 @@ namespace ERP.Application.Admissions.Commands.ReceiveOfflineAdmissionForm;
 public sealed class ReceiveOfflineAdmissionFormCommandHandler
     : IRequestHandler<ReceiveOfflineAdmissionFormCommand, ReceiveOfflineAdmissionFormResult>
 {
-    private const string PendingShiftSelection = "Pending Selection";
-
     private readonly IApplicantAccountRepository _accountRepository;
     private readonly IOfflineFormIssuanceRepository _issuanceRepository;
     private readonly IApplicantPasswordHasher _passwordHasher;
@@ -54,6 +53,10 @@ public sealed class ReceiveOfflineAdmissionFormCommandHandler
                 throw new InvalidOperationException("Email conflict while creating account; contact support.");
             }
 
+            var shiftCode = string.IsNullOrWhiteSpace(issuance.Shift)
+                ? OfflineAdmissionShift.ShiftI
+                : (OfflineAdmissionShift.TryNormalize(issuance.Shift) ?? issuance.Shift.Trim());
+
             var account = new StudentApplicantAccount(
                 formNumber,
                 issuance.StudentName.Trim(),
@@ -61,10 +64,11 @@ public sealed class ReceiveOfflineAdmissionFormCommandHandler
                 "Pending",
                 email,
                 issuance.MobileNumber.Trim(),
-                PendingShiftSelection,
+                shiftCode,
                 photoUrl: null);
 
             account.MarkAsOfflineIssued(major);
+            account.SetCuetAppliedAtIssue(issuance.CuetApplied);
 
             var hash = _passwordHasher.HashPassword(account, issuance.MobileNumber.Trim());
             account.SetPasswordHash(hash);

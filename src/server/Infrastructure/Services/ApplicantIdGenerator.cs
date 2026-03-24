@@ -15,8 +15,9 @@ public class ApplicantIdGenerator : IApplicantIdGenerator
 
     public async Task<string> GenerateAsync(CancellationToken cancellationToken = default)
     {
-        var prefix = "DBCT25";
-        
+        // Admissions year 2026 application series (was DBCT25 for 2025).
+        var prefix = "DBCT26";
+
         // Find the highest existing number for this prefix
         var existingIds = await _context.StudentApplicantAccounts
             .AsNoTracking()
@@ -43,7 +44,7 @@ public class ApplicantIdGenerator : IApplicantIdGenerator
         var exists = true;
         do
         {
-            candidate = $"{prefix}-{nextNumber:D4}"; // Format as DBCT25-0001, DBCT25-0002, etc.
+            candidate = $"{prefix}-{nextNumber:D4}"; // e.g. DBCT26-0001, DBCT26-0002
             exists = await _context.StudentApplicantAccounts
                 .AsNoTracking()
                 .AnyAsync(x => x.UniqueId == candidate, cancellationToken);

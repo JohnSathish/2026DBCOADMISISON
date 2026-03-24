@@ -29,6 +29,11 @@ public class PersonalInformationSection
     public string Category { get; set; } = string.Empty;
     public string RaceOrTribe { get; set; } = string.Empty;
     public string Religion { get; set; } = string.Empty;
+
+    /// <summary>Christian denominations; null/empty when religion is not Christian.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Denomination { get; set; }
+
     public bool IsDifferentlyAbled { get; set; }
     public bool IsEconomicallyWeaker { get; set; }
 }

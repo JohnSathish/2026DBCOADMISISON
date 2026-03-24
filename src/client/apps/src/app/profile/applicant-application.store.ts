@@ -51,13 +51,18 @@ export class ApplicantApplicationStore {
     }
   }
 
-  async saveDraft(payload: ApplicantApplicationDraft): Promise<ApplicantApplicationDraftResponse | null> {
+  async saveDraft(
+    payload: ApplicantApplicationDraft,
+    options?: { silent?: boolean }
+  ): Promise<ApplicantApplicationDraftResponse | null> {
     this.savingSignal.set(true);
     this.errorSignal.set(null);
     try {
       const response = await firstValueFrom(this.api.saveDraft(payload));
       this.setDraftResponse(response);
-      this.toast.show('Application saved successfully.', 'success');
+      if (!options?.silent) {
+        this.toast.show('Application saved successfully.', 'success');
+      }
       return response;
     } catch (error) {
       console.error('Failed to save application draft', error);

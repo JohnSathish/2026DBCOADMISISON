@@ -1,3 +1,4 @@
+using ERP.Application.Admissions;
 using ERP.Application.Admissions.Interfaces;
 using ERP.Domain.Admissions.Entities;
 using MediatR;
@@ -38,12 +39,19 @@ public sealed class GetOfflineFormIssuancePreviewQueryHandler
                 account.PaymentAmount ?? 0m,
                 account.PaymentCompletedOnUtc ?? account.CreatedOnUtc,
                 ApplicantAccountCreated: true,
-                account.Id);
+                account.Id,
+                OfflineAdmissionShift.ToDisplayLabel(account.Shift),
+                account.CuetAppliedAtIssue);
         }
 
         var issuance = await _issuanceRepository.GetByFormNumberAsync(formNumber, cancellationToken);
         if (issuance is not null)
         {
+            var shiftLabel = string.IsNullOrWhiteSpace(issuance.Shift)
+                ? null
+                : OfflineAdmissionShift.ToDisplayLabel(
+                    OfflineAdmissionShift.TryNormalize(issuance.Shift) ?? issuance.Shift.Trim());
+
             return new OfflineFormIssuancePreviewDto(
                 issuance.FormNumber,
                 issuance.StudentName,
@@ -51,7 +59,9 @@ public sealed class GetOfflineFormIssuancePreviewQueryHandler
                 issuance.ApplicationFeeAmount,
                 issuance.IssuedOnUtc,
                 ApplicantAccountCreated: issuance.ApplicantAccountId.HasValue,
-                issuance.ApplicantAccountId);
+                issuance.ApplicantAccountId,
+                shiftLabel,
+                issuance.CuetApplied);
         }
 
         return null;

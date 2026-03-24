@@ -19,6 +19,8 @@ export interface PersonalInformation {
   category: string;
   raceOrTribe: string;
   religion: string;
+  /** Set when `religion` is Christian; omit or null for other religions. */
+  denomination?: string | null;
   isDifferentlyAbled: boolean;
   isEconomicallyWeaker: boolean;
 }
@@ -122,5 +124,32 @@ export interface FileAttachment {
 export interface ApplicantApplicationDraftResponse {
   payload: ApplicantApplicationDraft;
   updatedOnUtc: string;
+}
+
+/**
+ * Strips base64 file data for POST /submit so the HTTP body stays small (files already live in the server draft).
+ * The API merges binaries from the stored draft before generating the PDF.
+ */
+export function draftForSubmitRequest(payload: ApplicantApplicationDraft): ApplicantApplicationDraft {
+  const strip = (a: FileAttachment | null): FileAttachment | null => {
+    if (!a) {
+      return null;
+    }
+    return {
+      fileName: a.fileName ?? '',
+      contentType: a.contentType || 'application/octet-stream',
+      data: '',
+    };
+  };
+  return {
+    ...payload,
+    uploads: {
+      stdXMarksheet: strip(payload.uploads.stdXMarksheet),
+      stdXIIMarksheet: strip(payload.uploads.stdXIIMarksheet),
+      cuetMarksheet: strip(payload.uploads.cuetMarksheet),
+      differentlyAbledProof: strip(payload.uploads.differentlyAbledProof),
+      economicallyWeakerProof: strip(payload.uploads.economicallyWeakerProof),
+    },
+  };
 }
 

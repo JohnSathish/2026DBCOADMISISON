@@ -15,6 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@angular/*": ["node_modules/@angular/*"],
       "@client/shared/ui": ["shared/src/index.ts"],
       "@client/shared/data": ["shared/data/src/index.ts"],
       "@client/shared/util": ["shared/util/src/index.ts"]

@@ -64,6 +64,7 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
 
         var pdf = Document.Create(container =>
         {
+            // Page 1 — application data (no embedded document previews)
             container.Page(page =>
             {
                 page.Margin(28);
@@ -76,13 +77,13 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
 
                 page.Content().Column(column =>
                 {
-                    column.Spacing(20);
+                    column.Spacing(18);
 
-                    // FYUP subtitle
-                    column.Item().PaddingTop(4).PaddingBottom(4).Text("FOUR YEAR UNDERGRADUATE PROGRAMME (FYUP) SEMESTER I")
+                    column.Item().PaddingTop(2).PaddingBottom(6).Text("FOUR YEAR UNDERGRADUATE PROGRAMME (FYUP) SEMESTER I")
                         .Bold()
-                        .FontSize(14)
-                        .FontColor(Red500);
+                        .FontSize(13)
+                        .FontColor(BrandPrimary)
+                        .LetterSpacing(0.3f);
 
                     column.Item().Element(inner => BuildSectionCardWithPhoto(
                         inner,
@@ -99,6 +100,7 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
                             ("Category", payload.PersonalInformation.Category),
                             ("Race / Tribe", payload.PersonalInformation.RaceOrTribe),
                             ("Religion", payload.PersonalInformation.Religion),
+                            ("Denomination", FormatDenominationForPdf(payload.PersonalInformation.Religion, payload.PersonalInformation.Denomination)),
                             ("Differently Abled", FormatBoolean(payload.PersonalInformation.IsDifferentlyAbled)),
                             ("Economically Weaker Section", FormatBoolean(payload.PersonalInformation.IsEconomicallyWeaker))
                         }));
@@ -133,8 +135,6 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
 
                     column.Item().Element(inner => BuildCourseHighlightCard(inner, payload.Courses, payload.PersonalInformation.Shift));
 
-                    column.Item().Element(inner => BuildDocumentsStatusSection(inner, payload.Uploads, payload));
-
                     column.Item().Element(inner => BuildPaymentOfficialSection(
                         inner,
                         applicationFee,
@@ -143,27 +143,28 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
                         transactionId));
 
                     column.Item().Element(inner => BuildFamilyCardsSection(inner, payload.Contacts));
+                    // Do not add a trailing "see next page" strip here: in QuestPDF this flow spans multiple
+                    // pages and a short block at the end often orphans onto its own nearly blank page.
+                    // The uploads section is a separate page with its own header and intro text.
                 });
 
-                page.Footer().Height(36).Column(footer =>
-                {
-                    footer.Item().PaddingTop(10).BorderTop(1).BorderColor(BorderColor).Row(row =>
-                    {
-                        row.RelativeItem().Text("This is a system-generated document.")
-                            .FontSize(9)
-                            .FontColor(Slate600);
-                        row.AutoItem().Element(e => e.DefaultTextStyle(t => t.FontSize(9).FontColor(Slate600)).Text(text =>
-                        {
-                            text.Span("Page ");
-                            text.CurrentPageNumber();
-                            text.Span(" of ");
-                            text.TotalPages();
-                        }));
-                        row.AutoItem().Text("www.donboscocollege.ac.in")
-                            .FontSize(9)
-                            .FontColor(Slate600);
-                    });
-                });
+                page.Footer().Element(footer => BuildPdfFooter(footer, generatedOn));
+            });
+
+            // Page 2 — uploaded files with previews where possible
+            container.Page(page =>
+            {
+                page.Margin(28);
+                page.Size(PageSizes.A4);
+                page.PageColor("#fafbfc");
+                page.DefaultTextStyle(t => t.FontSize(11).FontColor(LabelMuted));
+
+                page.Header()
+                    .Element(h => BuildDocumentsPageHeader(h, applicationNumber, submittedOnUtc ?? generatedOn));
+
+                page.Content().Element(c => BuildUploadedDocumentsPageContent(c, payload.Uploads, payload));
+
+                page.Footer().Element(footer => BuildPdfFooter(footer, generatedOn));
             });
         }).GeneratePdf();
 
@@ -230,9 +231,13 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
                         .FontSize(9).FontColor(Slate600);
                     infoCol.Item().AlignCenter().Text("Email: principaldbct@gmail.com  |  www.donboscocollege.ac.in")
                         .FontSize(9).FontColor(Slate600);
-                    infoCol.Item().PaddingTop(4).AlignCenter().Text("Admission Application Form 2026–2027")
-                        .SemiBold().FontSize(11).FontColor(BrandPrimary)
-                        .BackgroundColor(Colors.White);
+                    infoCol.Item().PaddingTop(6).AlignCenter().Element(titleBar =>
+                    {
+                        titleBar.Background("#eff6ff").Border(1).BorderColor(BrandSecondary).PaddingHorizontal(16).PaddingVertical(8)
+                            .AlignCenter()
+                            .Text("Admission Application Form 2026–2027")
+                            .SemiBold().FontSize(11.5f).FontColor(BrandPrimary);
+                    });
                 });
 
                 // Right: Application ID, Date of submission
@@ -260,17 +265,22 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
 
     private static string GetLogoPath()
     {
-        // Try multiple possible paths - prioritize direct path, then relative paths
-        var possiblePaths = new[]
+        // Primary: files copied next to the host (Api) — works in Development and published output.
+        var baseDir = AppContext.BaseDirectory;
+        var candidates = new[]
         {
-            @"D:\Projects\ERP\vision-mission-1.png", // Direct path from project root
-            Path.Combine(Directory.GetCurrentDirectory(), "vision-mission-1.png"), // Current directory
-            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "vision-mission-1.png"), // Two levels up from Api project
-            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "vision-mission-1.png"), // Base directory
-            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "vision-mission-1.png"), // Three levels up from bin folder
+            Path.Combine(baseDir, "Logo.png"),
+            Path.Combine(baseDir, "wwwroot", "branding", "college-logo.png"),
+            Path.Combine(baseDir, "wwwroot", "vision-mission-1.png"),
+            Path.Combine(baseDir, "vision-mission-1.png"),
+            Path.Combine(Directory.GetCurrentDirectory(), "Logo.png"),
+            Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "branding", "college-logo.png"),
+            Path.Combine(Directory.GetCurrentDirectory(), "vision-mission-1.png"),
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "vision-mission-1.png"),
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "vision-mission-1.png"),
         };
 
-        foreach (var path in possiblePaths)
+        foreach (var path in candidates)
         {
             var fullPath = Path.GetFullPath(path);
             if (File.Exists(fullPath))
@@ -280,6 +290,193 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
         }
 
         return string.Empty;
+    }
+
+    private static void BuildPdfFooter(IContainer footer, DateTime generatedOnUtc)
+    {
+        footer.Height(44).PaddingTop(8).BorderTop(1).BorderColor(BorderColor).Column(col =>
+        {
+            col.Item().Row(row =>
+            {
+                row.RelativeItem().Column(left =>
+                {
+                    left.Item().Text("Generated by BoscoConnect ERP")
+                        .FontSize(8.5f).SemiBold().FontColor(Slate600);
+                    left.Item().Text($"Generated {generatedOnUtc:dd MMM yyyy HH:mm} UTC")
+                        .FontSize(7.5f).FontColor(Slate400);
+                });
+                row.AutoItem().Element(e => e.DefaultTextStyle(t => t.FontSize(9).FontColor(Slate600)).Text(text =>
+                {
+                    text.Span("Page ");
+                    text.CurrentPageNumber();
+                    text.Span(" of ");
+                    text.TotalPages();
+                }));
+            });
+            col.Item().PaddingTop(4).AlignCenter().Text("www.donboscocollege.ac.in")
+                .FontSize(8).FontColor(Slate400);
+        });
+    }
+
+    private static void BuildDocumentsPageHeader(IContainer container, string? applicationNumber, DateTime submittedOnUtc)
+    {
+        container.PaddingBottom(12).Column(headerCol =>
+        {
+            headerCol.Item().Row(row =>
+            {
+                row.ConstantItem(56).Height(56).Element(logo =>
+                {
+                    var logoPath = GetLogoPath();
+                    if (!string.IsNullOrEmpty(logoPath) && File.Exists(logoPath))
+                    {
+                        try
+                        {
+                            logo.Image(Image.FromFile(logoPath)).FitArea();
+                        }
+                        catch
+                        {
+                            logo.Background(BrandPrimary).AlignCenter().AlignMiddle()
+                                .Text("DBC").Bold().FontSize(14).FontColor(Colors.White);
+                        }
+                    }
+                    else
+                    {
+                        logo.Background(BrandPrimary).AlignCenter().AlignMiddle()
+                            .Text("DBC").Bold().FontSize(14).FontColor(Colors.White);
+                    }
+                });
+
+                row.RelativeItem().PaddingHorizontal(12).Column(infoCol =>
+                {
+                    infoCol.Item().Text("DON BOSCO COLLEGE, TURA")
+                        .Bold().FontSize(14).FontColor(BrandPrimary);
+                    infoCol.Item().PaddingTop(2).Text("Uploaded Documents — Admission Application 2026–2027")
+                        .SemiBold().FontSize(11).FontColor(Slate700);
+                });
+
+                row.ConstantItem(120).AlignRight().Column(rightCol =>
+                {
+                    rightCol.Item().Text("Application ID").FontSize(7).FontColor(Slate600);
+                    rightCol.Item().Text(string.IsNullOrWhiteSpace(applicationNumber) ? "—" : applicationNumber)
+                        .SemiBold().FontSize(9).FontColor(ValueDark);
+                    rightCol.Item().PaddingTop(4).Text("Submitted").FontSize(7).FontColor(Slate600);
+                    rightCol.Item().Text(submittedOnUtc.ToString("dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture))
+                        .SemiBold().FontSize(9).FontColor(ValueDark);
+                });
+            });
+            headerCol.Item().PaddingTop(8).LineHorizontal(1).LineColor(BorderColor);
+        });
+    }
+
+    private static void BuildUploadedDocumentsPageContent(
+        IContainer container,
+        UploadSection uploads,
+        ApplicantApplicationDraftDto payload)
+    {
+        var isCuetApplied = !string.IsNullOrWhiteSpace(payload.Academics.Cuet.Marks) ||
+                            !string.IsNullOrWhiteSpace(payload.Academics.Cuet.RollNumber);
+
+        var items = new List<(string Label, FileAttachmentDto? File, bool Required)>
+        {
+            ("STD X Marksheet", uploads.StdXMarksheet, true),
+            ("STD XII Marksheet", uploads.StdXIIMarksheet, true),
+            ("CUET Marksheet", uploads.CuetMarksheet, isCuetApplied),
+            ("Disability Certificate", uploads.DifferentlyAbledProof, payload.PersonalInformation.IsDifferentlyAbled),
+            ("Economically Weaker Section Proof", uploads.EconomicallyWeakerProof, payload.PersonalInformation.IsEconomicallyWeaker)
+        };
+
+        container.Column(column =>
+        {
+            column.Spacing(16);
+            column.Item().Text(
+                    "Official copies of certificates and proofs submitted with this application. PDF files show a file badge; images are previewed below.")
+                .FontSize(9.5f).FontColor(Slate600).LineHeight(1.35f);
+
+            foreach (var (label, file, required) in items)
+            {
+                if (!required && (file is null || string.IsNullOrWhiteSpace(file.FileName)))
+                {
+                    continue;
+                }
+
+                column.Item().Element(card => BuildDocumentPreviewCard(card, label, file, required));
+            }
+        });
+    }
+
+    private static void BuildDocumentPreviewCard(
+        IContainer container,
+        string label,
+        FileAttachmentDto? attachment,
+        bool isRequired)
+    {
+        container.Background(Colors.White)
+            .Border(1).BorderColor(BorderColor)
+            .Padding(12)
+            .Column(cardCol =>
+            {
+                cardCol.Item().Row(row =>
+                {
+                    row.RelativeItem().Column(h =>
+                    {
+                        h.Item().Text(label).Bold().FontSize(12).FontColor(BrandPrimary);
+                        h.Item().PaddingTop(2).Text(attachment?.FileName ?? "—").FontSize(9).FontColor(Slate600);
+                    });
+                    row.AutoItem().Element(badge =>
+                    {
+                        var ok = attachment is not null && !string.IsNullOrWhiteSpace(attachment.Data);
+                        var badgeBg = ok ? Emerald500 : (isRequired ? Red500 : Slate400);
+                        var txt = ok ? "Received" : (isRequired ? "Missing" : "N/A");
+                        badge.Background(badgeBg).PaddingHorizontal(10).PaddingVertical(4)
+                            .Text(txt).FontSize(8).FontColor(Colors.White).SemiBold();
+                    });
+                });
+
+                cardCol.Item().PaddingTop(10).Element(preview =>
+                {
+                    if (attachment is null || string.IsNullOrWhiteSpace(attachment.Data))
+                    {
+                        preview.MinHeight(72).Background("#fff7ed").Border(1).BorderColor("#fed7aa").Padding(12)
+                            .AlignCenter().AlignMiddle()
+                            .Text(isRequired ? "Document not uploaded" : "Not applicable")
+                            .FontSize(10).SemiBold().FontColor(Slate600);
+                        return;
+                    }
+
+                    var isPdf = attachment.ContentType?.Contains("pdf", StringComparison.OrdinalIgnoreCase) == true
+                        || attachment.FileName?.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) == true;
+
+                    if (isPdf)
+                    {
+                        preview.MinHeight(100).Background(SectionBg).Border(2).BorderColor(BrandPrimary).Padding(16)
+                            .Column(pdfCol =>
+                            {
+                                pdfCol.Item().AlignCenter().Text("PDF").Bold().FontSize(14).FontColor(BrandPrimary);
+                                pdfCol.Item().PaddingTop(6).AlignCenter().Text("Preview not embedded — file is attached in the system.")
+                                    .FontSize(9).FontColor(Slate600).AlignCenter();
+                                pdfCol.Item().PaddingTop(4).AlignCenter().Text(attachment.FileName)
+                                    .FontSize(8).FontColor(Slate400);
+                            });
+                        return;
+                    }
+
+                    try
+                    {
+                        var bytes = Convert.FromBase64String(attachment.Data);
+                        preview.MaxHeight(320).Border(2).BorderColor(BrandPrimary).Padding(6)
+                            .Element(img =>
+                            {
+                                img.Image(Image.FromBinaryData(bytes)).FitArea();
+                            });
+                    }
+                    catch
+                    {
+                        preview.MinHeight(72).Background("#fef2f2").Padding(8).AlignCenter()
+                            .Text("Preview unavailable")
+                            .FontSize(9).FontColor(Slate600);
+                    }
+                });
+            });
     }
 
     private static string GetPhotoPath(string? photoUrl)
@@ -317,41 +514,57 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
         string? photoUrl,
         (string Label, string Value)[] rows)
     {
-        container.Background(SectionBg)
+        container.Background(Colors.White)
             .Border(1).BorderColor(BorderColor)
-            .Padding(20)
             .Column(column =>
             {
-                column.Item().Text(title).Bold().FontSize(15).FontColor(ValueDark);
-                column.Spacing(12);
-                column.Item().Row(row =>
+                column.Item().Background("#f1f5f9").BorderBottom(1).BorderColor(BorderColor)
+                    .PaddingVertical(12).PaddingHorizontal(14)
+                    .Text(title).Bold().FontSize(13).FontColor(BrandPrimary);
+                column.Item().Background(SectionBg).PaddingVertical(16).PaddingHorizontal(18).Column(body =>
                 {
-                    row.RelativeItem().Column(fieldsCol =>
+                    body.Spacing(12);
+                    body.Item().Row(row =>
                     {
-                        fieldsCol.Spacing(10);
-                        foreach (var (label, value) in rows.Where(r => !string.IsNullOrWhiteSpace(r.Label)))
+                        row.RelativeItem().Column(fieldsCol =>
                         {
-                            fieldsCol.Item().Row(fieldRow =>
+                            fieldsCol.Spacing(10);
+                            foreach (var (label, value) in rows.Where(r => !string.IsNullOrWhiteSpace(r.Label)))
                             {
-                                fieldRow.ConstantItem(200).Text(label)
-                                    .FontSize(11).FontColor(LabelMuted);
-                                fieldRow.RelativeItem().Text(string.IsNullOrWhiteSpace(value) ? "—" : value)
-                                    .FontSize(11).SemiBold().FontColor(ValueDark);
-                            });
-                        }
-                    });
-                    row.ConstantItem(88).Height(88).AlignRight().Element(photoContainer =>
-                    {
-                        var photoPath = GetPhotoPath(photoUrl);
-                        if (!string.IsNullOrEmpty(photoPath) && File.Exists(photoPath))
-                        {
-                            try
-                            {
-                                photoContainer.Border(1).BorderColor(BorderColor)
-                                    .Image(Image.FromFile(photoPath)).FitArea();
+                                fieldsCol.Item().Row(fieldRow =>
+                                {
+                                    fieldRow.ConstantItem(200).Text(label)
+                                        .FontSize(11).FontColor(LabelMuted);
+                                    fieldRow.RelativeItem().Text(string.IsNullOrWhiteSpace(value) ? "—" : value)
+                                        .FontSize(11).SemiBold().FontColor(ValueDark);
+                                });
                             }
-                            catch { }
-                        }
+                        });
+                        row.ConstantItem(100).Height(118).AlignRight().Element(photoOuter =>
+                        {
+                            photoOuter.Border(2).BorderColor(BrandSecondary).Background(Colors.White).Padding(4)
+                                .Element(photoInner =>
+                                {
+                                    var photoPath = GetPhotoPath(photoUrl);
+                                    if (!string.IsNullOrEmpty(photoPath) && File.Exists(photoPath))
+                                    {
+                                        try
+                                        {
+                                            photoInner.Image(Image.FromFile(photoPath)).FitArea();
+                                        }
+                                        catch
+                                        {
+                                            photoInner.Background("#f1f5f9").AlignCenter().AlignMiddle()
+                                                .Text("Photo").FontSize(8).FontColor(Slate400);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        photoInner.Background("#f1f5f9").AlignCenter().AlignMiddle()
+                                            .Text("No photo").FontSize(8).FontColor(Slate400);
+                                    }
+                                });
+                        });
                     });
                 });
             });
@@ -362,22 +575,26 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
         string title,
         (string Label, string Value)[] rows)
     {
-        container.Background(SectionBg)
+        container.Background(Colors.White)
             .Border(1).BorderColor(BorderColor)
-            .Padding(20)
             .Column(column =>
             {
-                column.Item().Text(title).Bold().FontSize(15).FontColor(ValueDark);
-                column.Spacing(10);
-                foreach (var (label, value) in rows.Where(r => !string.IsNullOrWhiteSpace(r.Label)))
+                column.Item().Background("#f1f5f9").BorderBottom(1).BorderColor(BorderColor)
+                    .PaddingVertical(12).PaddingHorizontal(14)
+                    .Text(title).Bold().FontSize(13).FontColor(BrandPrimary);
+                column.Item().Background(SectionBg).PaddingVertical(16).PaddingHorizontal(18).Column(body =>
                 {
-                    column.Item().Row(row =>
+                    body.Spacing(10);
+                    foreach (var (label, value) in rows.Where(r => !string.IsNullOrWhiteSpace(r.Label)))
                     {
-                        row.ConstantItem(200).Text(label).FontSize(11).FontColor(LabelMuted);
-                        row.RelativeItem().Text(string.IsNullOrWhiteSpace(value) ? "—" : value)
-                            .FontSize(11).SemiBold().FontColor(ValueDark);
-                    });
-                }
+                        body.Item().Row(row =>
+                        {
+                            row.ConstantItem(200).Text(label).FontSize(11).FontColor(LabelMuted);
+                            row.RelativeItem().Text(string.IsNullOrWhiteSpace(value) ? "—" : value)
+                                .FontSize(11).SemiBold().FontColor(ValueDark);
+                        });
+                    }
+                });
             });
     }
 
@@ -495,56 +712,6 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
                     r.RelativeItem().Text(FormatCourseOption(courses.ValueAddedChoice)).FontSize(11).SemiBold().FontColor(ValueDark);
                 });
             });
-    }
-
-    private static void BuildDocumentsStatusSection(
-        IContainer container,
-        UploadSection uploads,
-        ApplicantApplicationDraftDto payload)
-    {
-        container.Background(SectionBg)
-            .Border(1).BorderColor(BorderColor)
-            .Padding(20)
-            .Column(column =>
-            {
-                column.Item().Text("Documents").Bold().FontSize(15).FontColor(ValueDark);
-                column.Spacing(10);
-                AddDocumentStatusRow(column, "STD X Marksheet", uploads.StdXMarksheet, true);
-                AddDocumentStatusRow(column, "STD XII Marksheet", uploads.StdXIIMarksheet, true);
-                var isCuetApplied = !string.IsNullOrWhiteSpace(payload.Academics.Cuet.Marks) ||
-                                    !string.IsNullOrWhiteSpace(payload.Academics.Cuet.RollNumber);
-                AddDocumentStatusRow(column, "CUET Marksheet", uploads.CuetMarksheet, isCuetApplied);
-                AddDocumentStatusRow(column, "Disability Certificate", uploads.DifferentlyAbledProof, payload.PersonalInformation.IsDifferentlyAbled);
-                AddDocumentStatusRow(column, "EWS Proof", uploads.EconomicallyWeakerProof, payload.PersonalInformation.IsEconomicallyWeaker);
-            });
-    }
-
-    private static void AddDocumentStatusRow(ColumnDescriptor column, string label, FileAttachmentDto? attachment, bool isRequired)
-    {
-        var isUploaded = attachment is not null && !string.IsNullOrWhiteSpace(attachment.FileName);
-        string statusText;
-        string icon;
-        if (isUploaded)
-        {
-            statusText = "✔ Uploaded";
-            icon = "✔";
-        }
-        else if (!isRequired)
-        {
-            statusText = "— Not Available";
-            icon = "—";
-        }
-        else
-        {
-            statusText = "❌ Not Uploaded";
-            icon = "❌";
-        }
-
-        column.Item().Row(row =>
-        {
-            row.RelativeItem().Text(label).FontSize(11).FontColor(ValueDark);
-            row.AutoItem().Text($"{icon} {statusText}").FontSize(10).SemiBold().FontColor(isUploaded ? Emerald600 : (isRequired ? Red500 : LabelMuted));
-        });
     }
 
     private static void BuildPaymentOfficialSection(
@@ -1247,6 +1414,17 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
 
     private static string FormatBoolean(bool value) => value ? "Yes" : "No";
 
+    private static string FormatDenominationForPdf(string? religion, string? denomination)
+    {
+        if (string.IsNullOrWhiteSpace(religion)
+            || !religion.Trim().Equals("Christian", StringComparison.OrdinalIgnoreCase))
+        {
+            return "—";
+        }
+
+        return string.IsNullOrWhiteSpace(denomination) ? "—" : denomination.Trim();
+    }
+
     private static string FormatShift(string? shift, string? legacy)
     {
         var value = string.IsNullOrWhiteSpace(shift) ? legacy : shift;
@@ -1435,6 +1613,13 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
     private static bool IsPersonalInformationComplete(PersonalInformationSection personal)
     {
         if (personal is null)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(personal.Religion)
+            && personal.Religion.Trim().Equals("Christian", StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(personal.Denomination))
         {
             return false;
         }

@@ -81,7 +81,10 @@ public class PaymentsController(
                 OrderId = order.Id,
                 Amount = amount,
                 Currency = order.Currency,
-                KeyId = razorpaySettings.Value.KeyId
+                KeyId = razorpaySettings.Value.KeyId,
+                CheckoutLogoUrl = string.IsNullOrWhiteSpace(razorpaySettings.Value.CheckoutLogoUrl)
+                    ? null
+                    : razorpaySettings.Value.CheckoutLogoUrl.Trim()
             });
         }
         catch (Exception ex)
@@ -254,6 +257,9 @@ public class CreateOrderResponse
     public decimal Amount { get; set; }
     public string Currency { get; set; } = string.Empty;
     public string KeyId { get; set; } = string.Empty;
+
+    /// <summary>Optional absolute URL for Razorpay checkout <c>image</c> (college logo).</summary>
+    public string? CheckoutLogoUrl { get; set; }
 }
 
 public class VerifyPaymentRequest

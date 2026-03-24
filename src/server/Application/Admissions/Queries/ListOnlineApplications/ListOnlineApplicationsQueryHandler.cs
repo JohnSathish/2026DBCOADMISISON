@@ -40,11 +40,12 @@ public sealed class ListOnlineApplicationsQueryHandler : IRequestHandler<ListOnl
             statusFilter = parsedStatus;
         }
 
+        var useLifecycle = !string.IsNullOrWhiteSpace(request.ApplicationLifecycleStage);
         var (accounts, totalCount) = await _accountRepository.GetPagedAsync(
             page,
             pageSize,
-            request.IsApplicationSubmitted,
-            request.IsPaymentCompleted,
+            useLifecycle ? null : request.IsApplicationSubmitted,
+            useLifecycle ? null : request.IsPaymentCompleted,
             request.SearchTerm,
             statusFilter,
             request.Shift,
@@ -56,11 +57,13 @@ public sealed class ListOnlineApplicationsQueryHandler : IRequestHandler<ListOnl
             request.MaxClassXiiPercentage,
             request.AdmissionPath,
             request.AdmissionChannel,
+            useLifecycle ? request.ApplicationLifecycleStage!.Trim() : null,
             cancellationToken);
 
         var accountList = accounts.ToList();
         var idList = accountList.Select(a => a.Id).ToList();
         var drafts = await _applicationRepository.GetDraftsByAccountIdsAsync(idList, cancellationToken);
+        var draftAccountIdSet = drafts.Select(d => d.AccountId).ToHashSet();
 
         var categoryMajorByAccount = new Dictionary<Guid, (string? Category, string? MajorSubject, decimal? ParsedPct)>();
         foreach (var draft in drafts)
@@ -126,7 +129,9 @@ public sealed class ListOnlineApplicationsQueryHandler : IRequestHandler<ListOnl
                 account.OfflineIssuedMajorSubject,
                 account.OfflineFormReceivedOnUtc,
                 account.SelectionListRound,
-                account.SelectionListPublishedAtUtc);
+                account.SelectionListPublishedAtUtc,
+                account.CuetAppliedAtIssue,
+                draftAccountIdSet.Contains(account.Id));
         }).ToList();
 
         return new OnlineApplicationsListResponse(applications, totalCount, page, pageSize);

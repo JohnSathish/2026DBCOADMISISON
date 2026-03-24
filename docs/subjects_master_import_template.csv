@@ -12,6 +12,12 @@ MBOSE,ARTS,Geography,100
 MBOSE,ARTS,Philosophy,110
 MBOSE,ARTS,Psychology,120
 MBOSE,ARTS,Mathematics,130
+MBOSE,ARTS,Khasi (MIL),140
+MBOSE,ARTS,Mizo (MIL),150
+MBOSE,ARTS,Hindi (MIL),160
+MBOSE,ARTS,Bengali (MIL),170
+MBOSE,ARTS,Assamese (MIL),180
+MBOSE,ARTS,Nepali (MIL),190
 MBOSE,SCIENCE,English,10
 MBOSE,SCIENCE,Physics,20
 MBOSE,SCIENCE,Chemistry,30
@@ -19,6 +25,12 @@ MBOSE,SCIENCE,Mathematics,40
 MBOSE,SCIENCE,Biology,50
 MBOSE,SCIENCE,Computer Science,60
 MBOSE,SCIENCE,Environmental Science,70
+MBOSE,SCIENCE,Khasi (MIL),80
+MBOSE,SCIENCE,Mizo (MIL),90
+MBOSE,SCIENCE,Hindi (MIL),100
+MBOSE,SCIENCE,Bengali (MIL),110
+MBOSE,SCIENCE,Assamese (MIL),120
+MBOSE,SCIENCE,Nepali (MIL),130
 MBOSE,COMMERCE,English,10
 MBOSE,COMMERCE,Accountancy,20
 MBOSE,COMMERCE,Business Studies,30
@@ -26,6 +38,12 @@ MBOSE,COMMERCE,Economics,40
 MBOSE,COMMERCE,Mathematics,50
 MBOSE,COMMERCE,Computer Science,60
 MBOSE,COMMERCE,Entrepreneurship,70
+MBOSE,COMMERCE,Khasi (MIL),80
+MBOSE,COMMERCE,Mizo (MIL),90
+MBOSE,COMMERCE,Hindi (MIL),100
+MBOSE,COMMERCE,Bengali (MIL),110
+MBOSE,COMMERCE,Assamese (MIL),120
+MBOSE,COMMERCE,Nepali (MIL),130
 CBSE,ARTS,English Core,10
 CBSE,ARTS,English Elective,20
 CBSE,ARTS,History,30
@@ -39,6 +57,7 @@ CBSE,ARTS,Physical Education,100
 CBSE,ARTS,Fine Arts,110
 CBSE,ARTS,Home Science,120
 CBSE,ARTS,Mathematics,130
+CBSE,ARTS,Hindi,140
 CBSE,SCIENCE,English,10
 CBSE,SCIENCE,Physics,20
 CBSE,SCIENCE,Chemistry,30
@@ -47,6 +66,7 @@ CBSE,SCIENCE,Biology,50
 CBSE,SCIENCE,Computer Science,60
 CBSE,SCIENCE,Informatics Practices,70
 CBSE,SCIENCE,Physical Education,80
+CBSE,SCIENCE,Hindi,140
 CBSE,COMMERCE,English,10
 CBSE,COMMERCE,Accountancy,20
 CBSE,COMMERCE,Business Studies,30
@@ -55,6 +75,7 @@ CBSE,COMMERCE,Mathematics,50
 CBSE,COMMERCE,Applied Mathematics,60
 CBSE,COMMERCE,Informatics Practices,70
 CBSE,COMMERCE,Entrepreneurship,80
+CBSE,COMMERCE,Hindi,140
 ISC,ARTS,English,10
 ISC,ARTS,History,20
 ISC,ARTS,Political Science,30
@@ -65,6 +86,7 @@ ISC,ARTS,Economics,70
 ISC,ARTS,Home Science,80
 ISC,ARTS,Environmental Science,90
 ISC,ARTS,Physical Education,100
+ISC,ARTS,Hindi,110
 ISC,SCIENCE,English,10
 ISC,SCIENCE,Physics,20
 ISC,SCIENCE,Chemistry,30
@@ -72,6 +94,7 @@ ISC,SCIENCE,Mathematics,40
 ISC,SCIENCE,Biology,50
 ISC,SCIENCE,Computer Science,60
 ISC,SCIENCE,Environmental Science,70
+ISC,SCIENCE,Hindi,80
 ISC,COMMERCE,English,10
 ISC,COMMERCE,Accounts,20
 ISC,COMMERCE,Commerce,30
@@ -79,3 +102,4 @@ ISC,COMMERCE,Economics,40
 ISC,COMMERCE,Mathematics,50
 ISC,COMMERCE,Computer Science,60
 ISC,COMMERCE,Business Studies,70
+ISC,COMMERCE,Hindi,80

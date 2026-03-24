@@ -18,7 +18,8 @@ public sealed record ListOnlineApplicationsQuery(
     decimal? MinClassXiiPercentage = null,
     decimal? MaxClassXiiPercentage = null,
     string? AdmissionPath = null,
-    string? AdmissionChannel = null) : IRequest<OnlineApplicationsListResponse>;
+    string? AdmissionChannel = null,
+    string? ApplicationLifecycleStage = null) : IRequest<OnlineApplicationsListResponse>;
 
 public sealed record OnlineApplicationsListResponse(
     IReadOnlyCollection<OnlineApplicationDto> Applications,

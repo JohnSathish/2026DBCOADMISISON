@@ -22,7 +22,7 @@
         id="applicationNumber"
         type="text"
         formControlName="applicationNumber"
-        placeholder="e.g., DBCT25-0001"
+        placeholder="e.g., DBCT26-0001"
         [class.is-invalid]="offerForm.get('applicationNumber')?.invalid && offerForm.get('applicationNumber')?.touched"
       />
       <div
@@ -33,7 +33,7 @@
           Application number is required.
         </div>
         <div *ngIf="offerForm.get('applicationNumber')?.errors?.['pattern']">
-          Please enter a valid application number (e.g., DBCT25-0001).
+          Please enter a valid application number (e.g., DBCT26-0001).
         </div>
       </div>
     </div>

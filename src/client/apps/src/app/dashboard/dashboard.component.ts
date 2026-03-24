@@ -1,4 +1,4 @@
-import { Component, computed, inject, viewChild } from '@angular/core';
+import { Component, computed, CUSTOM_ELEMENTS_SCHEMA, inject, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ApplicantPortalStore } from './applicant-portal.store';
@@ -45,6 +45,7 @@ function splitElectiveCatalogLine(s: string): { code: string; name: string; full
   imports: [CommonModule, RouterModule, PaymentComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class DashboardComponent {
   private readonly store = inject(ApplicantPortalStore);
@@ -78,6 +79,25 @@ export class DashboardComponent {
   readonly courseSelection = computed(
     () => this.store.dashboard()?.courseSelection ?? null
   );
+
+  /** Elective rows for template @for (Tailwind layout). */
+  readonly electiveRows = computed((): {
+    key: string;
+    label: string;
+    raw: unknown;
+    tooltip: string | null;
+  }[] => {
+    const cs = this.courseSelection();
+    if (!cs) {
+      return [];
+    }
+    return [
+      { key: 'mdc', label: 'MDC', raw: cs.mdc, tooltip: this.electiveTooltip(cs.mdc) },
+      { key: 'aec', label: 'AEC', raw: cs.aec, tooltip: this.electiveTooltip(cs.aec) },
+      { key: 'sec', label: 'SEC', raw: cs.sec, tooltip: this.electiveTooltip(cs.sec) },
+      { key: 'vac', label: 'VAC', raw: cs.vac, tooltip: this.electiveTooltip(cs.vac) },
+    ];
+  });
   readonly incompleteSteps = computed(
     () => this.summary().application.incomplete
   );
@@ -95,6 +115,243 @@ export class DashboardComponent {
   readonly documentsUploadedCount = computed(() =>
     this.documents().filter((d) => d.isComplete).length
   );
+
+  /** Core form sections before uploads (matches server step keys). */
+  private readonly formCoreKeys = ['personal', 'address', 'family', 'academics', 'courses'] as const;
+
+  readonly applicationStepsFromSummary = computed(
+    () => this.store.summary().application.steps
+  );
+
+  readonly isFormCoreComplete = computed(() => {
+    const steps = this.applicationStepsFromSummary();
+    return this.formCoreKeys.every((k) => steps.find((s) => s.key === k)?.isComplete);
+  });
+
+  readonly isUploadsStepComplete = computed(() => {
+    return this.applicationStepsFromSummary().find((s) => s.key === 'uploads')?.isComplete ?? false;
+  });
+
+  readonly isFeePaid = computed(() => {
+    const f = this.summary().fees;
+    return f.status === 'Completed' || f.remaining <= 0;
+  });
+
+  readonly isApplicationSubmitted = computed(
+    () => this.store.dashboard()?.application?.isSubmitted === true
+  );
+
+  readonly feeStatusLower = computed(() => this.summary().fees.status?.toLowerCase() ?? '');
+
+  readonly feeLooksFailed = computed(() => {
+    const s = this.feeStatusLower();
+    return s.includes('fail') || s === 'failed' || s === 'cancelled';
+  });
+
+  readonly documentsNeedAttention = computed(() => {
+    const docs = this.documents();
+    if (!docs.length) return false;
+    return docs.some((d) => !d.isComplete);
+  });
+
+  /**
+   * Four-step admission journey: form → uploads → payment → submitted.
+   */
+  readonly admissionJourney = computed(() => {
+    const s1 = this.isFormCoreComplete();
+    const s2 = this.isUploadsStepComplete();
+    const s3 = this.isFeePaid();
+    const s4 = this.isApplicationSubmitted();
+
+    let currentIndex = 0;
+    if (!s1) {
+      currentIndex = 0;
+    } else if (!s2) {
+      currentIndex = 1;
+    } else if (!s3) {
+      currentIndex = 2;
+    } else if (!s4) {
+      currentIndex = 3;
+    } else {
+      currentIndex = -1;
+    }
+
+    const base = [
+      {
+        id: 'form',
+        title: 'Application information',
+        hint: 'Personal details through course preferences',
+        done: s1,
+      },
+      {
+        id: 'documents',
+        title: 'Documents & uploads',
+        hint: 'Mark sheets and declaration on the form',
+        done: s2,
+      },
+      {
+        id: 'payment',
+        title: 'Application fee',
+        hint: 'Secure online payment',
+        done: s3,
+      },
+      {
+        id: 'submit',
+        title: 'Submit to admissions',
+        hint: 'Application sent for review',
+        done: s4,
+      },
+    ];
+
+    const steps = base.map((step, i) => {
+      let state: 'complete' | 'current' | 'pending';
+      if (step.done) {
+        state = 'complete';
+      } else if (i === currentIndex) {
+        state = 'current';
+      } else {
+        state = 'pending';
+      }
+      return { ...step, state };
+    });
+
+    return { steps, allComplete: s1 && s2 && s3 && s4, currentIndex };
+  });
+
+  /** Primary CTA for the hero and next-step card. */
+  readonly nextGuidance = computed((): {
+    title: string;
+    body: string;
+    ctaLabel: string;
+    ctaRouterLink: string | null;
+    ctaAction: 'pay' | 'application' | 'documents' | null;
+    urgency: 'critical' | 'high' | 'normal';
+  } => {
+    const sum = this.summary();
+    const remaining = sum.fees.remaining;
+
+    if (this.feeLooksFailed() && remaining > 0 && sum.fees.canPay) {
+      return {
+        title: 'Payment needs attention',
+        body: 'Your last payment attempt did not complete. Try again using the Pay now button.',
+        ctaLabel: 'Retry payment',
+        ctaRouterLink: null,
+        ctaAction: 'pay',
+        urgency: 'critical',
+      };
+    }
+    if (sum.fees.canPay && remaining > 0) {
+      return {
+        title: 'Pay your application fee',
+        body: `₹${remaining.toFixed(0)} is due. Unpaid applications may not be considered for admission. Complete payment as soon as possible.`,
+        ctaLabel: 'Pay now',
+        ctaRouterLink: null,
+        ctaAction: 'pay',
+        urgency: 'critical',
+      };
+    }
+    if (this.incompleteSteps().length > 0) {
+      const first = this.incompleteSteps()[0];
+      return {
+        title: 'Complete your application',
+        body: first
+          ? `${first.title} still needs to be finished. Finish all sections before your application can be reviewed.`
+          : 'Continue your application form to move forward.',
+        ctaLabel: 'Continue application',
+        ctaRouterLink: '/app/profile/application',
+        ctaAction: 'application',
+        urgency: 'high',
+      };
+    }
+    if (this.documentsNeedAttention()) {
+      return {
+        title: 'Upload required documents',
+        body: 'Some required documents are still pending. Upload them so admissions can verify your file.',
+        ctaLabel: 'Go to documents',
+        ctaRouterLink: '/app/documents',
+        ctaAction: 'documents',
+        urgency: 'high',
+      };
+    }
+    const status = this.selectionStatus();
+    if (status === 'Under Review' || status === 'Submitted') {
+      return {
+        title: 'Application under review',
+        body: 'No action needed right now. We will email you when there is an update.',
+        ctaLabel: '',
+        ctaRouterLink: null,
+        ctaAction: null,
+        urgency: 'normal',
+      };
+    }
+    if (status === 'Approved') {
+      return {
+        title: 'Congratulations',
+        body: 'Follow the instructions in your email for the next steps.',
+        ctaLabel: 'View admission offer',
+        ctaRouterLink: '/app/offer',
+        ctaAction: null,
+        urgency: 'normal',
+      };
+    }
+    return {
+      title: 'You are up to date',
+      body: this.store.summary().checklist.nextAction,
+      ctaLabel: 'Open application',
+      ctaRouterLink: '/app/profile/application',
+      ctaAction: 'application',
+      urgency: 'normal',
+    };
+  });
+
+  /** Ordered quick actions: most urgent first, max practical items. */
+  readonly quickActionItems = computed(() => {
+    const items: {
+      id: string;
+      label: string;
+      icon: string;
+      routerLink?: string;
+      action?: 'pay';
+      priority: number;
+    }[] = [];
+
+    if (this.paymentPending()) {
+      items.push({
+        id: 'pay',
+        label: 'Pay application fee',
+        icon: 'solar:card-bold',
+        action: 'pay',
+        priority: 1,
+      });
+    }
+    if (this.incompleteSteps().length > 0) {
+      items.push({
+        id: 'profile',
+        label: 'Continue application form',
+        icon: 'solar:clipboard-list-bold',
+        routerLink: '/app/profile/application',
+        priority: 2,
+      });
+    }
+    if (this.documentsNeedAttention()) {
+      items.push({
+        id: 'docs',
+        label: 'Upload documents',
+        icon: 'solar:document-add-bold',
+        routerLink: '/app/documents',
+        priority: 3,
+      });
+    }
+    items.sort((a, b) => a.priority - b.priority);
+    return items.slice(0, 4);
+  });
+
+  runGuidanceAction(): void {
+    const g = this.nextGuidance();
+    if (g.ctaAction === 'pay') {
+      this.startPayment();
+    }
+  }
 
   statusStepDone(step: string): boolean {
     const status = this.selectionStatus();

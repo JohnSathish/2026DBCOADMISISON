@@ -20,6 +20,11 @@ import {
   getWorkflowPipelineLabel,
   type WorkflowStageFilter,
 } from '../admission-workflow';
+import {
+  APPLICATION_LIFECYCLE_FILTER_OPTIONS,
+  getApplicationLifecycleBadgeClass,
+  getApplicationLifecycleLabel,
+} from '../application-lifecycle.util';
 
 @Component({
   selector: 'app-admin-online-applications-list',
@@ -62,6 +67,9 @@ export class AdminOnlineApplicationsListComponent implements OnInit {
   protected readonly percentageRangeControl = this.fb.control<
     'all' | '60-70' | '70-80' | '80plus'
   >('all');
+  protected readonly lifecycleStageControl = this.fb.control<string>('');
+  protected readonly createdFromControl = this.fb.control<string>('');
+  protected readonly createdToControl = this.fb.control<string>('');
 
   protected readonly workflowStageFilter = signal<WorkflowStageFilter | ''>('');
   protected readonly categoryContains = signal('');
@@ -69,6 +77,8 @@ export class AdminOnlineApplicationsListComponent implements OnInit {
 
   protected readonly statusOptions = ADMIN_APPLICANT_STATUSES;
   protected readonly shiftOptions = ['Day', 'Morning', 'Evening', 'Night'];
+  protected readonly lifecycleFilterOptions = APPLICATION_LIFECYCLE_FILTER_OPTIONS;
+
   protected readonly workflowStageOptions: { value: WorkflowStageFilter | ''; label: string }[] = [
     { value: '', label: 'All stages' },
     { value: 'intake', label: '1 · Intake (draft / fee)' },
@@ -129,16 +139,33 @@ export class AdminOnlineApplicationsListComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     const b = this.percentageBounds();
+    const lc = (this.lifecycleStageControl.value ?? '').trim();
+    const useLifecycle = !!lc;
+    const from = (this.createdFromControl.value ?? '').trim();
+    const to = (this.createdToControl.value ?? '').trim();
+    const createdFromUtc = from
+      ? new Date(from + 'T00:00:00.000Z').toISOString()
+      : undefined;
+    const createdToUtc = to
+      ? new Date(to + 'T23:59:59.999Z').toISOString()
+      : undefined;
     try {
       const response = await firstValueFrom(
         this.api.listOnlineApplications({
           page: this.currentPage(),
           pageSize: this.pageSize(),
           searchTerm: this.searchControl.value || undefined,
-          isApplicationSubmitted: this.submittedFilterControl.value ?? undefined,
-          isPaymentCompleted: this.paymentFilterControl.value ?? undefined,
+          isApplicationSubmitted: useLifecycle
+            ? undefined
+            : (this.submittedFilterControl.value ?? undefined),
+          isPaymentCompleted: useLifecycle
+            ? undefined
+            : (this.paymentFilterControl.value ?? undefined),
+          applicationLifecycleStage: lc || undefined,
           status: this.statusFilterControl.value || undefined,
           shift: this.shiftFilterControl.value || undefined,
+          createdFromUtc,
+          createdToUtc,
           sortBy: this.sortBy(),
           sortDescending: this.sortDescending(),
           minClassXiiPercentage: b.min,
@@ -189,6 +216,36 @@ export class AdminOnlineApplicationsListComponent implements OnInit {
     this.workflowStageFilter.set('');
     this.categoryContains.set('');
     this.majorContains.set('');
+  }
+
+  applicationLifecycleLabel(app: OnlineApplicationDto): string {
+    return getApplicationLifecycleLabel(app);
+  }
+
+  applicationLifecycleBadgeClass(app: OnlineApplicationDto): string {
+    return getApplicationLifecycleBadgeClass(getApplicationLifecycleLabel(app));
+  }
+
+  protected hasServerFilters(): boolean {
+    return !!(
+      (this.searchControl.value ?? '').trim() ||
+      this.submittedFilterControl.value !== null ||
+      this.paymentFilterControl.value !== null ||
+      (this.statusFilterControl.value ?? '').trim() ||
+      (this.shiftFilterControl.value ?? '').trim() ||
+      this.percentageRangeControl.value !== 'all' ||
+      this.admissionPathControl.value !== 'all' ||
+      (this.lifecycleStageControl.value ?? '').trim() ||
+      (this.createdFromControl.value ?? '').trim() ||
+      (this.createdToControl.value ?? '').trim()
+    );
+  }
+
+  emptyServerMessage(): string {
+    if (this.hasServerFilters()) {
+      return 'No students match the current filters. Adjust application stage, dates, or other filters, or clear them to see all registered accounts.';
+    }
+    return 'No registered students yet.';
   }
 
   workflowLabel(app: OnlineApplicationDto): string {

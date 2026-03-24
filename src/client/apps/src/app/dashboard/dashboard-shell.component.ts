@@ -1,6 +1,16 @@
-import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  computed,
+  inject,
+  signal,
+  CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
+import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
 import { AuthService } from '../auth/auth.service';
 import { ChangePasswordComponent } from '../auth/change-password.component';
 import { ApplicantPortalStore } from './applicant-portal.store';
@@ -15,9 +25,17 @@ import { ApplicantNotificationReadService } from './applicant-notification-read.
 @Component({
   selector: 'app-dashboard-shell',
   standalone: true,
-  imports: [CommonModule, RouterModule, ChangePasswordComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    ChangePasswordComponent,
+    CdkMenu,
+    CdkMenuItem,
+    CdkMenuTrigger,
+  ],
   templateUrl: './dashboard-shell.component.html',
   styleUrls: ['./dashboard-shell.component.scss'],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   providers: [ApplicantPortalStore],
 })
 export class DashboardShellComponent implements OnInit, OnDestroy {
@@ -75,7 +93,6 @@ export class DashboardShellComponent implements OnInit, OnDestroy {
       this.store.dashboard()?.application?.coursesLocked === true
   );
   readonly sidebarOpen = signal(false);
-  readonly profileDropdownOpen = signal(false);
   changePasswordOpen = false;
   passwordUpdated = false;
 
@@ -83,12 +100,8 @@ export class DashboardShellComponent implements OnInit, OnDestroy {
     this.sidebarOpen.update((v) => !v);
   }
 
-  toggleProfileDropdown(): void {
-    this.profileDropdownOpen.update((v) => !v);
-  }
-
-  closeProfileDropdown(): void {
-    this.profileDropdownOpen.set(false);
+  closeMobileSidebar(): void {
+    this.sidebarOpen.set(false);
   }
 
   constructor() {
@@ -105,6 +118,13 @@ export class DashboardShellComponent implements OnInit, OnDestroy {
           });
         }
       });
+
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed()
+      )
+      .subscribe(() => this.closeMobileSidebar());
   }
 
   ngOnInit(): void {

@@ -71,6 +71,9 @@ public class StudentApplicantAccount
     /// <summary>Major subject recorded when an offline form was issued (receipt / tracking).</summary>
     public string? OfflineIssuedMajorSubject { get; private set; }
 
+    /// <summary>CUET status captured at offline form issue (null = online / not recorded).</summary>
+    public bool? CuetAppliedAtIssue { get; private set; }
+
     /// <summary>When the physical form was received at the office (same-day workflow).</summary>
     public DateTime? OfflineFormReceivedOnUtc { get; private set; }
 
@@ -226,6 +229,11 @@ public class StudentApplicantAccount
     {
         AdmissionChannel = AdmissionChannel.Offline;
         OfflineIssuedMajorSubject = string.IsNullOrWhiteSpace(majorSubject) ? null : majorSubject.Trim();
+    }
+
+    public void SetCuetAppliedAtIssue(bool cuetApplied)
+    {
+        CuetAppliedAtIssue = cuetApplied;
     }
 
     public void MarkOfflinePhysicalFormReceived(DateTime utcNow)

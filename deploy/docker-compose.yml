@@ -1,0 +1,37 @@
+# Local smoke test only. In Coolify, create separate resources or one compose stack.
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/docker/api/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=erp;Username=postgres;Password=postgres"
+      Authentication__Jwt__Secret: "CHANGE_ME_MIN_32_CHARS_RANDOM_SECRET_KEY!!"
+    depends_on:
+      - db
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/docker/web/Dockerfile
+    ports:
+      - "8081:80"
+    depends_on:
+      - api
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: erp
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

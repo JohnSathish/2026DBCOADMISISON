@@ -20,13 +20,6 @@ export const adminRoutes: Route[] = [
             (m) => m.AdminDashboardHomeComponent
           ),
       },
-      {
-        path: 'dashboard-legacy',
-        loadComponent: () =>
-          import('./dashboard/admin-dashboard-preskool-standalone.component').then(
-            (m) => m.AdminDashboardPreskoolStandaloneComponent
-          ),
-      },
       // Online Admission Routes
       {
         path: 'admissions',
@@ -613,9 +606,13 @@ export const adminRoutes: Route[] = [
           },
         ],
       },
-      // Settings Routes
+      // Settings Routes (nested outlet so all /admin/settings/* children render reliably)
       {
         path: 'settings',
+        loadComponent: () =>
+          import('./settings/admin-settings-shell.component').then(
+            (m) => m.AdminSettingsShellComponent
+          ),
         children: [
           {
             path: 'users',

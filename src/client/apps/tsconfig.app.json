@@ -10,10 +10,6 @@
     "src/test-setup.ts",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
-    "src/app/admin/preskool-template/**/*",
-    "src/app/admin/shared/preskool/shared/custom-pagination/**",
-    "src/app/admin/shared/preskool/shared/pipe/**",
-    "src/app/admin/shared/preskool/shared/settings/**",
     "src/app/admin/transport/vehicles/**",
     "src/app/admin/applicants/**",
     "src/app/admin/admissions/communications/**",
@@ -21,7 +17,6 @@
     "src/app/admin/dashboard/admin-dashboard.component.ts",
     "src/app/admin/library/books/**",
     "src/app/admin/shared/components/kpi-card.component.ts",
-    "src/app/admin/shared/preskool/shared/calendar/**",
     "src/environments/environment.prod.ts"
   ]
 }

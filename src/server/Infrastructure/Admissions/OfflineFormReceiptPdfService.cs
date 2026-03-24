@@ -43,6 +43,8 @@ public sealed class OfflineFormReceiptPdfService : IOfflineFormReceiptPdfService
         decimal amountPaid,
         DateTime issuedOnUtc,
         string? mobileNumberForReceipt,
+        string shiftDisplay,
+        bool? cuetApplied,
         CancellationToken cancellationToken = default)
     {
         lock (LicenseLock)
@@ -75,6 +77,8 @@ public sealed class OfflineFormReceiptPdfService : IOfflineFormReceiptPdfService
                     studentName,
                     majorSubject,
                     mobileNumberForReceipt,
+                    shiftDisplay,
+                    cuetApplied,
                     amountPaid,
                     issuedIndia));
             });
@@ -92,6 +96,8 @@ public sealed class OfflineFormReceiptPdfService : IOfflineFormReceiptPdfService
         string studentName,
         string? majorSubject,
         string? mobileNumberForReceipt,
+        string shiftDisplay,
+        bool? cuetApplied,
         decimal amountPaid,
         DateTime issuedIndia)
     {
@@ -197,6 +203,10 @@ public sealed class OfflineFormReceiptPdfService : IOfflineFormReceiptPdfService
 
                             Row("Form Number", formNumber);
                             Row("Student Name", studentName);
+                            Row("Shift", string.IsNullOrWhiteSpace(shiftDisplay) ? "—" : shiftDisplay);
+                            Row(
+                                "CUET Application Status",
+                                cuetApplied is null ? "—" : (cuetApplied.Value ? "Yes" : "No"));
                             if (!string.IsNullOrWhiteSpace(majorSubject))
                             {
                                 Row("Subject / Course", majorSubject);

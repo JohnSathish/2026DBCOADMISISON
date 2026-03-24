@@ -133,7 +133,9 @@
     <!-- Filters -->
     <section class="admin-dash__card admin-dash__filters-card" aria-label="Filter applications">
       <h2 class="admin-dash__card-title">Filters</h2>
-      <p class="admin-dash__card-lead">Refine the list — filters apply server-side except course, which filters the current page.</p>
+      <p class="admin-dash__card-lead">
+        All registered accounts are listed by default. Filters apply server-side except course, which filters the current page only.
+      </p>
       <div class="admin-dash__filters-grid">
         <label class="admin-dash__field">
           <span class="admin-dash__field-label">Search</span>
@@ -148,7 +150,17 @@
           />
         </label>
         <label class="admin-dash__field">
-          <span class="admin-dash__field-label">Status</span>
+          <span class="admin-dash__field-label">Application stage</span>
+          <select
+            class="admin-dash__input"
+            [ngModel]="lifecycleStageFilter()"
+            (ngModelChange)="lifecycleStageFilter.set($event)"
+          >
+            <option *ngFor="let o of lifecycleFilterOptions" [value]="o.value">{{ o.label }}</option>
+          </select>
+        </label>
+        <label class="admin-dash__field">
+          <span class="admin-dash__field-label">Pipeline status</span>
           <select
             class="admin-dash__input"
             [ngModel]="statusFilter()"
@@ -210,7 +222,9 @@
       <div class="admin-dash__table-toolbar">
         <div>
           <h2 class="admin-dash__card-title admin-dash__card-title--table">Applications</h2>
-          <p class="admin-dash__card-lead">Submitted applications — sort columns, act on rows, export data.</p>
+          <p class="admin-dash__card-lead">
+            Registered students and applications — sort columns, act on rows, export data.
+          </p>
         </div>
         <div class="admin-dash__toolbar-actions">
           <details class="admin-dash__export">
@@ -251,9 +265,10 @@
               </th>
               <th>Course</th>
               <th>Shift</th>
+              <th>Application stage</th>
               <th>
                 <button type="button" class="admin-dash__th-btn" (click)="toggleSort('status')">
-                  Status <span class="admin-dash__sort">{{ sortIndicator('status') }}</span>
+                  Pipeline <span class="admin-dash__sort">{{ sortIndicator('status') }}</span>
                 </button>
               </th>
               <th>Payment</th>
@@ -268,7 +283,7 @@
           </thead>
           <tbody>
             <tr *ngIf="!applicationsTable().getRowModel().rows.length && !tableLoading()">
-              <td colspan="9" class="admin-dash__empty">No applications match the current filters.</td>
+              <td colspan="10" class="admin-dash__empty">{{ emptyTableMessage() }}</td>
             </tr>
             <tr *ngFor="let row of applicationsTable().getRowModel().rows; trackBy: trackByRow">
               <td *ngFor="let cell of row.getVisibleCells()" [class.admin-dash__col-actions]="cell.column.id === 'actions'">
@@ -277,6 +292,9 @@
                   <span *ngSwitchCase="'fullName'">{{ cell.getValue() }}</span>
                   <span *ngSwitchCase="'majorSubject'">{{ cell.getValue() || '—' }}</span>
                   <span *ngSwitchCase="'shift'">{{ cell.getValue() || '—' }}</span>
+                  <span *ngSwitchCase="'lifecycle'">
+                    <span [class]="lifecycleBadgeClass(row.original)">{{ cell.getValue() }}</span>
+                  </span>
                   <span *ngSwitchCase="'status'"
                     ><span [class]="statusBadgeClass(row.original.status)">{{ cell.getValue() }}</span></span
                   >

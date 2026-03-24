@@ -59,6 +59,7 @@ public interface IApplicantAccountRepository
         decimal? maxClassXiiPercentage = null,
         string? admissionPath = null,
         string? admissionChannel = null,
+        string? applicationLifecycleStage = null,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<StudentApplicantAccount>> GetAccountsForSelectionListPublishAsync(

@@ -1,5 +1,6 @@
 import { provideBrowserGlobalErrorListeners } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
+import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { App } from './app/app';
@@ -11,6 +12,7 @@ import { AuthInterceptor } from './app/auth/auth.interceptor';
 bootstrapApplication(App, {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    provideAnimations(),
     provideRouter(appRoutes),
     provideHttpClient(withInterceptorsFromDi()),
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },

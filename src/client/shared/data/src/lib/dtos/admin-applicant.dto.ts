@@ -217,6 +217,8 @@ export interface OnlineApplicationDto {
   gender: string;
   shift: string;
   isApplicationSubmitted: boolean;
+  /** True when a draft row exists for this account (may still be true after submit). */
+  hasApplicationDraft?: boolean;
   isPaymentCompleted: boolean;
   paymentTransactionId?: string | null;
   paymentAmount?: number | null;
@@ -240,6 +242,8 @@ export interface OnlineApplicationDto {
   erpSyncLastError?: string | null;
   /** Class XII % (from draft / synced on save). */
   classXIIPercentage?: number | null;
+  /** CUET status captured when the offline form was issued (offline applicants). */
+  cuetAppliedAtIssue?: boolean | null;
 }
 
 export interface OnlineApplicationsListResponse {

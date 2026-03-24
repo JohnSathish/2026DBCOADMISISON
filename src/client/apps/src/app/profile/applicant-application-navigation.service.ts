@@ -32,11 +32,38 @@ export class ApplicantApplicationNavigationService {
   setCurrentIndex(index: number): void {
     const steps = this.stepsSignal();
     if (!steps.length) {
+      const prev = this.currentIndexSignal();
       this.currentIndexSignal.set(0);
+      if (prev !== 0) {
+        this.scheduleScrollFormToTop();
+      }
       return;
     }
     const clamped = Math.max(0, Math.min(index, steps.length));
+    const prev = this.currentIndexSignal();
     this.currentIndexSignal.set(clamped);
+    if (clamped !== prev) {
+      this.scheduleScrollFormToTop();
+    }
+  }
+
+  /**
+   * Scrolls the admission form back to the top when the step changes so users do not stay
+   * scrolled to the bottom (Next/Save) after moving to the next section.
+   */
+  private scheduleScrollFormToTop(): void {
+    queueMicrotask(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const el = document.getElementById('application-form-top');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        });
+      });
+    });
   }
 }
 
