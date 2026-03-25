@@ -60,10 +60,11 @@ Optional overrides:
 1. New resource → **Dockerfile**: `deploy/docker/web/Dockerfile`
 2. Port **80** internally.
 3. **Domain:** `admissionsdbctura.com` (and `www` if you use it — add CORS for `www` as in `appsettings.Production.json`).
+4. **Environment variable:** `API_UPSTREAM_HOST` = Docker DNS name of the **API** container (same network). The web image nginx **proxies `/api`** to `http://$API_UPSTREAM_HOST:8080`, avoiding **405** when `POST /api/...` would otherwise hit nginx only.
 
 **API URL in the app:** `src/client/apps/src/environments/environment.prod.ts` uses  
 `https://admissionsdbctura.com/api`.  
-That works when Traefik routes **same host** `https://admissionsdbctura.com/api` → API container.
+That works when Traefik routes **same host** `https://admissionsdbctura.com/api` → API container, **or** when nginx proxies `/api` to the API using `API_UPSTREAM_HOST`.
 
 ### Same-domain routing (recommended)
 

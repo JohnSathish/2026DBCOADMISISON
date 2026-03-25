@@ -19,6 +19,8 @@ services:
       dockerfile: deploy/docker/web/Dockerfile
     ports:
       - "8081:80"
+    environment:
+      API_UPSTREAM_HOST: api
     depends_on:
       - api
 

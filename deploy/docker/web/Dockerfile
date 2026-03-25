@@ -11,7 +11,13 @@ RUN corepack enable pnpm \
     && pnpm exec nx build applicant-portal --configuration=production
 
 FROM nginx:1.27-alpine
-COPY deploy/docker/web/nginx.conf /etc/nginx/conf.d/default.conf
+RUN apk add --no-cache gettext
+# /docker-entrypoint.d/99-api-upstream.sh writes conf.d/default.conf from template (envsubst).
+ENV API_UPSTREAM_HOST=api
+COPY deploy/docker/web/default.conf.template /etc/nginx/api/default.conf.template
+COPY deploy/docker/web/docker-entrypoint.d/99-api-upstream.sh /docker-entrypoint.d/99-api-upstream.sh
+RUN chmod +x /docker-entrypoint.d/99-api-upstream.sh \
+    && sed -i 's/\r$//' /docker-entrypoint.d/99-api-upstream.sh
 COPY --from=build /app/src/client/dist/apps /usr/share/nginx/html
 
 EXPOSE 80
