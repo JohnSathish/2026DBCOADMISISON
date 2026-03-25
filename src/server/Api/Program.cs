@@ -172,20 +172,33 @@ if (app.Environment.IsProduction())
     }
 }
 
-// Seed admin user if needed
+// Production: apply EF migrations on startup (avoids manual dotnet ef against remote DB).
+// Local/dev: continue using `dotnet ef database update` against your machine.
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    if (app.Environment.IsProduction())
+    {
+        try
+        {
+            await context.Database.MigrateAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Database migration failed");
+            throw;
+        }
+    }
+
     var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<AdminUser>>();
-    
     try
     {
         await SeedAdminUser.SeedOrUpdateAsync(context, passwordHasher);
     }
     catch (Exception ex)
     {
-        // Log error but don't fail startup
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "Error seeding admin user");
     }
 }
