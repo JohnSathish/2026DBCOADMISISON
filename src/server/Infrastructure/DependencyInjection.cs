@@ -133,6 +133,8 @@ public static class DependencyInjection
         services.AddSingleton<IApplicantLoginRateLimiter, ApplicantLoginRateLimiter>();
 
         services.Configure<RazorpaySettings>(configuration.GetSection("Razorpay"));
+        services.Configure<ApplicantApplicationFeeOptions>(
+            configuration.GetSection(ApplicantApplicationFeeOptions.ConfigurationSectionName));
         services.AddHttpClient<IRazorpayService, RazorpayService>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(30);

@@ -68,6 +68,8 @@ public sealed class SaveApplicantApplicationDraftCommandHandler : IRequestHandle
         ApplicantCourseSubjectNormalizer.Normalize(payload);
         AcademicSectionDraftSync.PushToLegacy(payload.Academics);
 
+        AdmissionPreferredShiftPolicy.EnsureAllowedForNewApplicationOrThrow(payload.Courses.Shift);
+
         var serialized = JsonSerializer.Serialize(payload, _serializerOptions);
         // Debug: Log the serialized JSON to verify totalMarks is included
         System.Diagnostics.Debug.WriteLine($"Serialized JSON contains totalMarks: {serialized.Contains("totalMarks", StringComparison.OrdinalIgnoreCase)}");

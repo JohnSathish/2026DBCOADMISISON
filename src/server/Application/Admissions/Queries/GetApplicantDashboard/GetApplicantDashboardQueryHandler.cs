@@ -4,9 +4,11 @@ using System.Text.Json;
 using ERP.Application.Admissions;
 using ERP.Application.Admissions.DTOs;
 using ERP.Application.Admissions.Interfaces;
+using ERP.Application.Admissions.Options;
 using ERP.Application.Admissions.ViewModels;
 using ERP.Domain.Admissions.Entities;
 using MediatR;
+using Microsoft.Extensions.Options;
 
 namespace ERP.Application.Admissions.Queries.GetApplicantDashboard;
 
@@ -15,6 +17,8 @@ public sealed class GetApplicantDashboardQueryHandler : IRequestHandler<GetAppli
     private readonly IApplicantAccountRepository _accountRepository;
     private readonly IApplicantApplicationRepository _applicationRepository;
     private readonly IAdmissionsRepository _admissionsRepository;
+    private readonly ApplicantApplicationFeeOptions _applicationFeeOptions;
+    private readonly AdmissionsWorkflowOptions _admissionsWorkflowOptions;
     private readonly JsonSerializerOptions _serializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -25,11 +29,15 @@ public sealed class GetApplicantDashboardQueryHandler : IRequestHandler<GetAppli
     public GetApplicantDashboardQueryHandler(
         IApplicantAccountRepository accountRepository,
         IApplicantApplicationRepository applicationRepository,
-        IAdmissionsRepository admissionsRepository)
+        IAdmissionsRepository admissionsRepository,
+        IOptions<ApplicantApplicationFeeOptions> applicationFeeOptions,
+        IOptions<AdmissionsWorkflowOptions> admissionsWorkflowOptions)
     {
         _accountRepository = accountRepository;
         _applicationRepository = applicationRepository;
         _admissionsRepository = admissionsRepository;
+        _applicationFeeOptions = applicationFeeOptions.Value;
+        _admissionsWorkflowOptions = admissionsWorkflowOptions.Value;
     }
 
     public async Task<ApplicantDashboardDto?> Handle(GetApplicantDashboardQuery request, CancellationToken cancellationToken)
@@ -168,10 +176,10 @@ public sealed class GetApplicantDashboardQueryHandler : IRequestHandler<GetAppli
         {
             "ShiftI" => "Shift - I (6:30 am – 9:30 am)",
             "ShiftII" => "Shift - II (9:45 am – 3:30 pm)",
-            "ShiftIII" => "Shift - III (2:45 pm – 5:45 pm)",
+            "ShiftIII" => "Shift - III (no longer offered)",
             "Morning" => "Shift - I (Morning)",
             "Day" => "Shift - II (Day)",
-            "Evening" => "Shift - III (Evening)",
+            "Evening" => "Evening (legacy; no longer offered)",
             _ => key
         };
     }
@@ -224,12 +232,11 @@ public sealed class GetApplicantDashboardQueryHandler : IRequestHandler<GetAppli
             && DateTime.UtcNow <= offer.ExpiryDate;
 
         // For admission fee payment, use the offer's admission fee amount if available
-        // Otherwise, use the standard application fee
-        const decimal applicationFee = 10m;
+        // Otherwise, use the standard application fee (configured with Razorpay application fee)
+        decimal applicationFee = _applicationFeeOptions.ApplicationFeeAmount;
         decimal amountDue = applicationFee;
-        
+
         // If there's a pending offer and account is approved, they need to pay admission fee
-        // The admission fee is typically the same as application fee (₹10) for now
         // In the future, this could be stored in the offer or account
         
         var amountPaid = account.PaymentAmount ?? 0m;
@@ -264,7 +271,9 @@ public sealed class GetApplicantDashboardQueryHandler : IRequestHandler<GetAppli
             amountPaid,
             status,
             canPay,
-            account.PaymentTransactionId);
+            account.PaymentTransactionId,
+            _applicationFeeOptions.ApplicationFeeAmount,
+            _admissionsWorkflowOptions.PostSelectionAdmissionFeeAmount);
     }
 
     private static bool IsApplicationSubmitted(ApplicantApplicationDraftDto draft) =>

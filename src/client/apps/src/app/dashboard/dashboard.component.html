@@ -150,6 +150,12 @@
               <span class="tabular-nums"> · ₹{{ summary.fees.remaining | number: '1.0-0' }} due</span>
             }
           </p>
+          @if (paymentFeePolicy(); as policy) {
+            <p class="mt-1 text-xs leading-snug text-slate-500">
+              Application fee: ₹{{ policy.applicationFee | number: '1.0-0' }}.
+              If selected for admission, admission fee at least ₹{{ policy.admissionMin | number: '1.0-0' }} (final amount per management).
+            </p>
+          }
         </div>
       </div>
     </div>

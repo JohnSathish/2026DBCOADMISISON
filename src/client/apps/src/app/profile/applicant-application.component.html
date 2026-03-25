@@ -807,11 +807,19 @@
                       {{ option.label }}
                     </option>
                   </select>
-                  <p class="form-hint" *ngIf="currentShiftOption() as shiftOpt">
-                    {{ shiftOpt.description }}
+                  <p
+                    class="form-hint form-hint--error"
+                    *ngIf="coursesForm.get('shift')?.invalid && (coursesForm.get('shift')?.touched || coursesForm.get('shift')?.dirty)"
+                  >
+                    <span *ngIf="coursesForm.get('shift')?.errors?.['shiftDiscontinued']">
+                      Shift III is no longer offered. Please select Shift I or Shift II.
+                    </span>
+                    <span *ngIf="coursesForm.get('shift')?.errors?.['shiftInvalid']">
+                      Please select a valid shift (Shift I or Shift II).
+                    </span>
                   </p>
                   <p class="form-hint" *ngIf="!currentShiftOption()">
-                    Select a shift to view the majors, minors, and elective options available for that schedule.
+                    Select a shift to view majors, minors, and electives.
                   </p>
                 </label>
               </section>

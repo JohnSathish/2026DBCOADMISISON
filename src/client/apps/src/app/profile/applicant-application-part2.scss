@@ -584,6 +584,11 @@
   color: #64748b;
 }
 
+.form-hint--error {
+  font-size: 0.8rem;
+  color: #b91c1c;
+}
+
 .form-error {
   font-size: 0.8rem;
   color: #b91c1c;
@@ -689,6 +694,8 @@
 
 .course-preferences__select {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 12px 0.75rem;
   border-radius: 10px;
   border: 1px solid #e2e8f0;
@@ -709,6 +716,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+
+  .form-group {
+    min-width: 0;
+  }
 }
 
 .vac-card {

@@ -75,4 +75,8 @@ export interface ApplicantDashboardPaymentDto {
   amountPaid: number;
   status: string;
   canPay: boolean;
+  /** Online application form fee (Razorpay). */
+  applicationFeeAmount?: number | null;
+  /** Minimum if selected for admission; management may publish a higher final amount. */
+  postSelectionAdmissionFeeAmount?: number | null;
 }

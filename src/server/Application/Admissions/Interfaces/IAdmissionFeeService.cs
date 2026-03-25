@@ -3,18 +3,15 @@ namespace ERP.Application.Admissions.Interfaces;
 public interface IAdmissionFeeService
 {
     /// <summary>
-    /// Gets the admission fee amount for a given stream/major subject.
+    /// Post-selection <strong>admission fee</strong> (for candidates who are offered / selected for admission).
+    /// This is not the online application form fee (Razorpay <c>ApplicationFeeAmount</c> / applicant portal).
     /// </summary>
-    /// <param name="majorSubject">The major subject/stream (e.g., "Science", "Arts", "Commerce")</param>
-    /// <returns>The admission fee amount in rupees</returns>
+    /// <param name="majorSubject">Reserved for future stream-specific rules; currently ignored.</param>
     decimal GetAdmissionFee(string? majorSubject);
 
     /// <summary>
-    /// Validates if the paid amount matches the required admission fee.
+    /// Whether the paid amount meets the required post-selection admission fee.
     /// </summary>
-    /// <param name="paidAmount">The amount that was paid</param>
-    /// <param name="majorSubject">The major subject/stream</param>
-    /// <returns>True if the paid amount matches or exceeds the required fee</returns>
     bool IsPaymentAmountValid(decimal? paidAmount, string? majorSubject);
 }
 

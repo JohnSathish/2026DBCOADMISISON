@@ -1373,7 +1373,7 @@ public sealed record CreateBulkAdmissionOffersRequest(
 
 public sealed record CreateDirectAdmissionOffersRequest(
     decimal MinimumPercentage = 60.0m,
-    decimal AdmissionFeeAmount = 10.0m,
+    decimal AdmissionFeeAmount = 9500.0m,
     DateTime? ExpiryDate = null);
 
 public sealed record SendIndividualAdmissionOfferRequest(

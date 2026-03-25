@@ -12,4 +12,10 @@ public sealed class AdmissionsWorkflowOptions
 
     /// <summary>Base URL for applicant portal (e.g. https://host:4200) for payment links.</summary>
     public string ApplicantPortalBaseUrl { get; set; } = "http://localhost:4200";
+
+    /// <summary>
+    /// Fee for candidates <em>selected for admission</em> (separate from the online application fee).
+    /// Minimum ₹9,500 until management publishes the final amount (may be higher).
+    /// </summary>
+    public decimal PostSelectionAdmissionFeeAmount { get; set; } = 9500m;
 }

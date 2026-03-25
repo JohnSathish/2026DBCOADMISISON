@@ -49,9 +49,9 @@ export interface DashboardSummary {
 
 const PLACEHOLDER_SUMMARY: DashboardSummary = {
   fees: {
-    amountDue: 600,
+    amountDue: 700,
     amountPaid: 0,
-    remaining: 600,
+    remaining: 700,
     status: 'Pending',
     canPay: false,
   },
@@ -187,7 +187,7 @@ function deriveSummary(dashboard: ApplicantDashboardDto): DashboardSummary {
       : 'All steps are complete. Await further updates from admissions.',
   };
 
-  const amountDue = dashboard.payment?.amountDue ?? 600;
+  const amountDue = dashboard.payment?.amountDue ?? 700;
   const amountPaid = dashboard.payment?.amountPaid ?? 0;
   const fees: FeeSummary = {
     amountDue,

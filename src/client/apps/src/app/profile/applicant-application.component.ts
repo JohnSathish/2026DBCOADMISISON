@@ -59,12 +59,11 @@ import {
   isMobileBrowser,
 } from '../shared/razorpay-checkout.util';
 
-type ShiftCode = 'ShiftI' | 'ShiftII' | 'ShiftIII';
+type ShiftCode = 'ShiftI' | 'ShiftII';
 
 interface ShiftOption {
   value: ShiftCode;
   label: string;
-  description: string;
 }
 
 interface CourseOfferingConfig {
@@ -75,20 +74,10 @@ const SHIFT_OPTIONS: readonly ShiftOption[] = [
   {
     value: 'ShiftI',
     label: 'Shift - I (Timing : 6:30 am to 9:30 am)',
-    description:
-      'Early morning lectures designed for students who prefer completing classes before mid-morning.',
   },
   {
     value: 'ShiftII',
     label: 'Shift - II (Timing : 9.45 am - 3.30 pm)',
-    description:
-      'Regular day shift covering the majority of undergraduate programmes.',
-  },
-  {
-    value: 'ShiftIII',
-    label: 'Shift - III (Timing : 2.45 pm - 5.45 pm)',
-    description:
-      'Late afternoon shift ideal for working students and specialised departments.',
   },
 ];
 
@@ -125,29 +114,38 @@ const COURSE_OFFERINGS: Record<ShiftCode, CourseOfferingConfig> = {
       'ACCOUNTING FOR BUSINESS': ['ECONOMICS'],
     },
   },
-  ShiftIII: {
-    majors: {
-      ECONOMICS: ['POLITICAL SCIENCE', 'SOCIOLOGY'],
-      EDUCATION: ['GARO'],
-      ENGLISH: ['EDUCATION', 'POLITICAL SCIENCE'],
-      GARO: ['EDUCATION', 'SOCIOLOGY'],
-      'POLITICAL SCIENCE': ['ECONOMICS', 'EDUCATION', 'SOCIOLOGY'],
-      SOCIOLOGY: ['ECONOMICS', 'GARO', 'POLITICAL SCIENCE'],
-    },
-  },
 };
 
 const LEGACY_SHIFT_ALIASES: Record<string, ShiftCode> = {
   Morning: 'ShiftI',
   Day: 'ShiftII',
-  Evening: 'ShiftIII',
   'SHIFT - I (TIMING : 7.30 AM - 1.15 PM)': 'ShiftI',
   'SHIFT - II (TIMING : 9.45 AM - 3.30 PM)': 'ShiftII',
-  'SHIFT - III (TIMING : 1.30 PM - 6.15 PM)': 'ShiftIII',
   'Shift - I': 'ShiftI',
   'Shift - II': 'ShiftII',
-  'Shift - III': 'ShiftIII',
 };
+
+/** Legacy stored values that referred to discontinued Shift III — must not map to a selectable shift. */
+const LEGACY_SHIFT_III_INPUTS = new Set<string>([
+  'ShiftIII',
+  'Evening',
+  'SHIFT - III (TIMING : 1.30 PM - 6.15 PM)',
+  'Shift - III',
+]);
+
+function isLegacyShiftIIIRaw(raw: string | undefined | null): boolean {
+  const t = (raw ?? '').trim();
+  if (!t) {
+    return false;
+  }
+  if (t === 'ShiftIII') {
+    return true;
+  }
+  if (LEGACY_SHIFT_III_INPUTS.has(t)) {
+    return true;
+  }
+  return false;
+}
 
 type OptionGroup = readonly { value: string; label: string; }[];
 
@@ -158,107 +156,39 @@ const SHIFT_SUPPLEMENTS: Record<ShiftCode, {
 }> = {
   ShiftI: {
     mdc: [
-      {
-        value: 'MDC 111',
-        label:
-          'MDC 111 — CULTURE AND SOCIETY (Those who studied Geography & Sociology in Class XII cannot take this subject)',
-      },
-      {
-        value: 'MDC 116',
-        label:
-          'MDC 116 — INTRODUCTION TO NATIONAL CADET CORPS (Enrolment in MDC- 116 INTRODUCTION TO NATIONAL CADET CORPS is compulsory for taking NCC)',
-      },
-      {
-        value: 'MDC 118',
-        label: 'MDC 118 — MATHEMATICS IN DAILY LIFE',
-      },
-      {
-        value: 'MDC 119',
-        label:
-          'MDC 119 — PHILOSOPHY OF CULTURE (Those who studied Philosophy in Class XII & those opted for Philosophy Major cannot take this Subject)',
-      },
+      { value: 'MDC 111', label: 'MDC 111 — Culture and Society' },
+      { value: 'MDC 116', label: 'MDC 116 — Introduction to National Cadet Corps' },
+      { value: 'MDC 118', label: 'MDC 118 — Mathematics in Daily Life' },
+      { value: 'MDC 119', label: 'MDC 119 — Philosophy of Culture' },
     ],
     aec: [
-      { value: 'AEC 120', label: 'AEC 120 — ALTERNATIVE ENGLISH' },
-      { value: 'AEC 123', label: 'AEC 123 — MIL-I: GARO' },
+      { value: 'AEC 120', label: 'AEC 120 — Alternative English' },
+      { value: 'AEC 123', label: 'AEC 123 — MIL-I: Garo' },
     ],
     sec: [
-      { value: 'SEC 131', label: 'SEC 131 — MOTIVATION' },
-      { value: 'SEC 132', label: 'SEC 132 — PERSONALITY DEVELOPMENT' },
-      { value: 'SEC 133', label: 'SEC 133 — PUBLIC SPEAKING' },
+      { value: 'SEC 131', label: 'SEC 131 — Motivation' },
+      { value: 'SEC 132', label: 'SEC 132 — Personality Development' },
+      { value: 'SEC 133', label: 'SEC 133 — Public Speaking' },
     ],
   },
   ShiftII: {
     mdc: [
-      {
-        value: 'MDC 111',
-        label:
-          'MDC 111 — CULTURE AND SOCIETY (Geography & Sociology students in Class XII cannot opt)',
-      },
-      {
-        value: 'MDC 118',
-        label: 'MDC 118 — MATHEMATICS IN DAILY LIFE',
-      },
-      {
-        value: 'MDC 119',
-        label:
-          'MDC 119 — PHILOSOPHY OF CULTURE (Class XII Philosophy students & Philosophy majors cannot opt)',
-      },
-      {
-        value: 'MDC 116',
-        label: 'MDC 116 — INTRODUCTION TO NATIONAL CADET CORPS',
-      },
-      {
-        value: 'MDC 112',
-        label: 'MDC 112 — FUNDAMENTALS OF COMPUTER SYSTEMS',
-      },
-      {
-        value: 'MDC 115',
-        label: 'MDC 115 — INTRODUCTION TO LIFE SCIENCES (Science students cannot opt)',
-      },
-      {
-        value: 'MDC 110',
-        label: 'MDC 110 — COMMERCIAL ARITHMETIC & ELEMENTARY STATISTICS',
-      },
+      { value: 'MDC 111', label: 'MDC 111 — Culture and Society' },
+      { value: 'MDC 118', label: 'MDC 118 — Mathematics in Daily Life' },
+      { value: 'MDC 119', label: 'MDC 119 — Philosophy of Culture' },
+      { value: 'MDC 116', label: 'MDC 116 — Introduction to National Cadet Corps' },
+      { value: 'MDC 112', label: 'MDC 112 — Fundamentals of Computer Systems' },
+      { value: 'MDC 115', label: 'MDC 115 — Introduction to Life Sciences' },
+      { value: 'MDC 110', label: 'MDC 110 — Commercial Arithmetic & Elementary Statistics' },
     ],
     aec: [
-      { value: 'AEC 120', label: 'AEC 120 — ALTERNATIVE ENGLISH' },
-      { value: 'AEC 123', label: 'AEC 123 — MIL-I: GARO' },
+      { value: 'AEC 120', label: 'AEC 120 — Alternative English' },
+      { value: 'AEC 123', label: 'AEC 123 — MIL-I: Garo' },
     ],
     sec: [
-      { value: 'SEC 131', label: 'SEC 131 — MOTIVATION' },
-      { value: 'SEC 132', label: 'SEC 132 — PERSONALITY DEVELOPMENT' },
-      { value: 'SEC 133', label: 'SEC 133 — PUBLIC SPEAKING' },
-    ],
-  },
-  ShiftIII: {
-    mdc: [
-      {
-        value: 'MDC 111',
-        label:
-          'MDC 111 — CULTURE AND SOCIETY (Those who studied Geography & Sociology in Class XII cannot take this subject)',
-      },
-      {
-        value: 'MDC 118',
-        label: 'MDC 118 — MATHEMATICS IN DAILY LIFE',
-      },
-      {
-        value: 'MDC 119',
-        label:
-          'MDC 119 — PHILOSOPHY OF CULTURE (Those who studied Philosophy in Class XII & those opted for Philosophy Major cannot take this Subject)',
-      },
-      {
-        value: 'MDC 112',
-        label: 'MDC 112 — FUNDAMENTALS OF COMPUTER SYSTEMS',
-      },
-    ],
-    aec: [
-      { value: 'AEC 120', label: 'AEC 120 — ALTERNATIVE ENGLISH' },
-      { value: 'AEC 123', label: 'AEC 123 — MIL-I: GARO' },
-    ],
-    sec: [
-      { value: 'SEC 132', label: 'SEC 132 — PERSONALITY DEVELOPMENT' },
-      { value: 'SEC 133', label: 'SEC 133 — PUBLIC SPEAKING' },
+      { value: 'SEC 131', label: 'SEC 131 — Motivation' },
+      { value: 'SEC 132', label: 'SEC 132 — Personality Development' },
+      { value: 'SEC 133', label: 'SEC 133 — Public Speaking' },
     ],
   },
 };
@@ -351,7 +281,7 @@ function getMdcIneligibilityReason(mdcValue: string, ctx: MdcEligibilityContext)
   return null;
 }
 
-const DEFAULT_VAC = { value: 'VAC 140', label: 'VAC 140 — ENVIRONMENT STUDIES' };
+const DEFAULT_VAC = { value: 'VAC 140', label: 'VAC 140 — Environment Studies' };
 
 interface Step {
   title: string;
@@ -619,6 +549,21 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     return null; // Valid
   };
 
+  /** Rejects discontinued Shift III and any non–Shift I/II value. */
+  private shiftAllowedValidator = (control: AbstractControl): { [key: string]: unknown } | null => {
+    const raw = (control.value ?? '').toString().trim();
+    if (!raw) {
+      return null;
+    }
+    if (isLegacyShiftIIIRaw(raw)) {
+      return { shiftDiscontinued: true };
+    }
+    if (raw !== 'ShiftI' && raw !== 'ShiftII') {
+      return { shiftInvalid: true };
+    }
+    return null;
+  };
+
   /** Class XII marks: 0–100 (required handled separately). */
   private classXiiMarksValidator = (control: AbstractControl): { [key: string]: unknown } | null => {
     const raw = control.value;
@@ -773,7 +718,7 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
   });
 
   readonly coursesForm = this.fb.group({
-     shift: ['', Validators.required],
+     shift: ['', [Validators.required, this.shiftAllowedValidator]],
      majorSubject: ['', Validators.required],
      minorSubject: ['', Validators.required],
      multidisciplinaryChoice: ['', [Validators.required, this.mdcEligibilityValidator]],
@@ -1833,21 +1778,25 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     if (!value) {
       return '';
     }
- 
+
     if (typeof value === 'string') {
       const trimmed = value.trim();
       if (!trimmed) {
         return '';
       }
- 
+
+      if (isLegacyShiftIIIRaw(trimmed)) {
+        return '';
+      }
+
       const direct = SHIFT_OPTIONS.find((option) => option.value === trimmed);
       if (direct) {
         return direct.value;
       }
- 
+
       return LEGACY_SHIFT_ALIASES[trimmed] ?? '';
     }
- 
+
     return '';
   }
 
@@ -2851,7 +2800,14 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     const draftShift =
        draft.courses.shift || draft.personalInformation.shift || '';
      const normalizedShift = this.toShiftCode(draftShift);
- 
+
+     if (isLegacyShiftIIIRaw(draftShift)) {
+       this.toast.show(
+         'Shift III is no longer offered. Please select Shift I or Shift II and confirm your course preferences.',
+         'info'
+       );
+     }
+
      this.coursesForm.patchValue({ shift: normalizedShift }, { emitEvent: false });
      this.updateMajorOptions(normalizedShift, true);
      this.coursesForm.patchValue(
@@ -3243,7 +3199,14 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
 
       const shiftControl = this.coursesForm.get('shift');
       if (shiftControl && !shiftControl.value) {
-        const normalizedShift = this.toShiftCode(dashboard.profile.shift);
+        const rawProf = dashboard.profile.shift ?? '';
+        if (isLegacyShiftIIIRaw(rawProf)) {
+          this.toast.show(
+            'Shift III is no longer offered. Please select Shift I or Shift II and confirm your course preferences.',
+            'info'
+          );
+        }
+        const normalizedShift = this.toShiftCode(rawProf);
         if (normalizedShift) {
           shiftControl.patchValue(normalizedShift, { emitEvent: false });
           this.updateMajorOptions(normalizedShift, true);

@@ -23,7 +23,7 @@ export class OfflineAdmissionComponent implements OnInit {
     formNumber: '',
     studentName: '',
     mobileNumber: '',
-    applicationFeeAmount: 0,
+    applicationFeeAmount: 700,
   };
 
   receiveFormNumber = '';

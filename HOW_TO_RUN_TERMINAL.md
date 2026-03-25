@@ -103,7 +103,8 @@ dotnet watch run --launch-profile http
 
 # Run frontend
 cd src/client
-pnpm nx serve applicant-portal
+
+
 
 # Check if backend is running
 netstat -ano | findstr :5227

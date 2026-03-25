@@ -65,12 +65,15 @@ public sealed record ApplicantDashboardApplicationStepDto(
     bool IsComplete,
     string? Description);
 
+/// <summary>Includes reference amounts: application fee (online) vs post-selection admission fee (if selected).</summary>
 public sealed record ApplicantDashboardPaymentDto(
     decimal AmountDue,
     decimal AmountPaid,
     string Status,
     bool CanPay,
-    string? TransactionId = null);
+    string? TransactionId = null,
+    decimal? ApplicationFeeAmount = null,
+    decimal? PostSelectionAdmissionFeeAmount = null);
 
 public sealed record ApplicantDashboardOfferDto(
     Guid OfferId,

@@ -7,7 +7,7 @@ public static class OfflineAdmissionShift
     public const string ShiftII = "ShiftII";
     public const string ShiftIII = "ShiftIII";
 
-    /// <summary>Normalizes API/UI values to ShiftI / ShiftII / ShiftIII.</summary>
+    /// <summary>Normalizes API/UI values to ShiftI / ShiftII / ShiftIII (III retained for legacy data only).</summary>
     public static string? TryNormalize(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))

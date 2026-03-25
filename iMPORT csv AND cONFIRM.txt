@@ -8,83 +8,37 @@ cd e:\Projects\ERP\scripts
 
 
 
-$base = "http://localhost:5227"
-$loginBody = @{ username = "admin"; password = "Admin@123" } | ConvertTo-Json
-$auth = Invoke-RestMethod -Uri "$base/api/auth/admin/login" -Method Post -Body $loginBody -ContentType "application/json"
-$token = $auth.token
 
-cd E:\Projects\ERP\scripts
-.\import-subjects-master-from-csv.ps1 `
-  -CsvPath "..\docs\subjects_master_import_template.csv" `
-  -BaseUrl $base `
-  -AdminToken $token
+Admission Result for  2026
 
-MDC 111	CULTURE AND SOCIETY (Those who studied Geography & Sociology in Class XII cannot take this subject)
-MDC 119	PHILOSOPHY OF CULTURE (Those who studied Philosophy in Class XII & those opted for Philosophy Major cannot take this Subject)
-MDC 115	INTRODUCTORY TO LIFE SCIENCES (Science students cannot take this Subject)
+Entrance Test results for admission to Classes IV,VI and VII 2026
 
 
-http://localhost:4200/admin/admissions/offline
-
-
-
-function getMdcIneligibilityReason(mdcValue: string, ctx: MdcEligibilityContext): string | null {
-  const v = (mdcValue ?? '').trim();
-  if (!v) {
-    return null;
-  }
-  const subjects = ctx.classXiiSubjectNames
-    .map((s) => normalizeAcademicSubjectToken(s))
-    .filter(Boolean);
-  const stream = (ctx.classXiiStreamCode ?? '').trim();
-  const major = (ctx.majorSubject ?? '').trim().toUpperCase();
-
-  if (v.startsWith('MDC 111')) {
-    const blocked = subjects.some(
-      (s) => subjectMatchesKeyword(s, 'geography') || subjectMatchesKeyword(s, 'sociology')
-    );
-    if (blocked) {
-      return 'This MDC is not available because you studied Geography and/or Sociology in Class XII.';
-    }
-  }
-  // ... MDC 119, MDC 115 ...
-}
-
-
-
-Here’s what was implemented and how it behaves.
-Behavior
-MDC 111 — Blocked if Class XII includes Geography and/or Sociology (case-insensitive, normalized spacing; substring match for wording variants).
-MDC 119 — Blocked if Class XII includes Philosophy, or major is PHILOSOPHY.
-MDC 115 — Blocked if stream is Science (classXiiStreamCode === 'SCIENCE') or Class XII subjects look like core science (Physics, Chemistry, Biology, Botany, Zoology, Biotechnology, Microbiology, Environmental Science, Life Science). Mathematics alone does not count as “science” for this rule (so Arts with Math is not blocked by subject keywords).
-Implementation
-Pure helpers at module level: normalizeAcademicSubjectToken, getMdcIneligibilityReason, etc.
-mdcEligibilityValidator on multidisciplinaryChoice (with required).
-enrichMdcOptionsWithEligibility fills availableMdc() with disabled + disabledReason for tooltips.
-refreshMdcEligibilityFromCurrentShift runs when academics or major changes; syncSupplementControl clears the MDC value if the saved choice becomes ineligible.
-UI: Red important alert (course-preferences__alert--important) when the control is invalid with mdcIneligible; options use [disabled] and [attr.title] for the reason.
-function getMdcIneligibilityReason(mdcValue: string, ctx: MdcEligibilityContext): string | null {  const v = (mdcValue ?? '').trim();  if (!v) {    return null;  }  const subjects = ctx.classXiiSubjectNames    .map((s) => normalizeAcademicSubjectToken(s))    .filter(Boolean);  const stream = (ctx.classXiiStreamCode ?? '').trim();  const major = (ctx.majorSubject ?? '').trim().toUpperCase();  if (v.startsWith('MDC 111')) {    const blocked = subjects.some(      (s) => subjectMatchesKeyword(s, 'geography') || subjectMatchesKeyword(s, 'sociology')    );    if (blocked) {      return 'This MDC is not available because you studied Geography and/or Sociology in Class XII.';    }  }  // ... MDC 119, MDC 115 ...}
-pnpm nx build applicant-portal --configuration=development (from src/client) completed successfully.
-Note: Rules are enforced on the applicant form (validation + UX). If you need the same guarantees on the API when drafts are saved or submitted, that should be mirrored server-side in a follow-up.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+boardCode	streamCode	subjectName	sortOrder
+MBOSE	ARTS	Khasi (MIL)	140
+MBOSE	ARTS	Mizo (MIL)	150
+MBOSE	ARTS	Hindi (MIL)	160
+MBOSE	ARTS	Bengali (MIL)	170
+MBOSE	ARTS	Assamese (MIL)	180
+MBOSE	ARTS	Nepali (MIL)	190
+MBOSE	SCIENCE	Khasi (MIL)	80
+MBOSE	SCIENCE	Mizo (MIL)	90
+MBOSE	SCIENCE	Hindi (MIL)	100
+MBOSE	SCIENCE	Bengali (MIL)	110
+MBOSE	SCIENCE	Assamese (MIL)	120
+MBOSE	SCIENCE	Nepali (MIL)	130
+MBOSE	COMMERCE	Khasi (MIL)	80
+MBOSE	COMMERCE	Mizo (MIL)	90
+MBOSE	COMMERCE	Hindi (MIL)	100
+MBOSE	COMMERCE	Bengali (MIL)	110
+MBOSE	COMMERCE	Assamese (MIL)	120
+MBOSE	COMMERCE	Nepali (MIL)	130
+CBSE	ARTS	Hindi 	140
+CBSE	SCIENCE	Hindi 	140
+CBSE	COMMERCE	Hindi 	140
+ISC	ARTS	Hindi	110
+ISC	SCIENCE	Hindi	80
+ISC	COMMERCE	Hindi	80
 
 
 

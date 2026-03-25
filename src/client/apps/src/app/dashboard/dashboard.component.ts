@@ -9,13 +9,13 @@ import { ApplicantElectiveSubjectDto } from '@client/shared/data';
 const SHIFT_LABELS: Record<string, string> = {
   ShiftI: 'Shift - I (6:30 am – 9:30 am)',
   ShiftII: 'Shift - II (9:45 am – 3:30 pm)',
-  ShiftIII: 'Shift - III (2:45 pm – 5:45 pm)',
+  ShiftIII: 'Shift - III (no longer offered)',
   Morning: 'Shift - I (Morning)',
   Day: 'Shift - II (Day)',
-  Evening: 'Shift - III (Evening)',
+  Evening: 'Evening (legacy; no longer offered)',
   'SHIFT - I (TIMING : 7.30 AM - 1.15 PM)': 'Shift - I (Legacy)',
   'SHIFT - II (TIMING : 9.45 AM - 3.30 PM)': 'Shift - II (Legacy)',
-  'SHIFT - III (TIMING : 1.30 PM - 6.15 PM)': 'Shift - III (Legacy)',
+  'SHIFT - III (TIMING : 1.30 PM - 6.15 PM)': 'Shift - III (Legacy; no longer offered)',
 };
 
 /** Matches server/PDF format "CODE \u2014 NAME" (em dash). */
@@ -53,6 +53,21 @@ export class DashboardComponent {
   readonly paymentComponent = viewChild(PaymentComponent);
 
   readonly profile = computed(() => this.store.dashboard()?.profile ?? null);
+
+  /** Application fee (online) vs minimum post-selection admission fee from server config. */
+  readonly paymentFeePolicy = computed(() => {
+    const p = this.store.dashboard()?.payment;
+    if (
+      p?.applicationFeeAmount == null ||
+      p?.postSelectionAdmissionFeeAmount == null
+    ) {
+      return null;
+    }
+    return {
+      applicationFee: p.applicationFeeAmount,
+      admissionMin: p.postSelectionAdmissionFeeAmount,
+    };
+  });
   readonly profilePhotoUrl = computed(() => {
     const photo = this.profile()?.photoUrl?.trim();
     if (!photo) return null;

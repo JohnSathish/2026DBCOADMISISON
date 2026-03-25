@@ -55,6 +55,8 @@ public sealed class SubmitApplicantApplicationCommandHandler
         ApplicantCourseSubjectNormalizer.Normalize(request.Payload);
         AcademicSectionDraftSync.PushToLegacy(request.Payload.Academics);
 
+        AdmissionPreferredShiftPolicy.EnsureAllowedForNewApplicationOrThrow(request.Payload.Courses.Shift);
+
         var serialized = JsonSerializer.Serialize(request.Payload, _serializerOptions);
         var draft = new ApplicantApplicationDraft(request.AccountId, serialized);
         draft.Update(serialized, DateTime.UtcNow);

@@ -74,8 +74,10 @@ public sealed class IssueOfflineAdmissionFormCommandHandler
         var shiftCode = OfflineAdmissionShift.TryNormalize(request.Shift);
         if (shiftCode is null)
         {
-            throw new InvalidOperationException("Shift must be Shift-I, Shift-II, or Shift-III.");
+            throw new InvalidOperationException("Shift must be Shift-I or Shift-II.");
         }
+
+        AdmissionPreferredShiftPolicy.EnsureAllowedForNewApplicationOrThrow(shiftCode);
 
         var issuedOn = DateTime.UtcNow;
         var issuance = new OfflineFormIssuance

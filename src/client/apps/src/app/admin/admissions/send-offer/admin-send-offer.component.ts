@@ -31,7 +31,7 @@ export class AdminSendOfferComponent {
 
   readonly offerForm = this.fb.group({
     applicationNumber: ['', [Validators.required, Validators.pattern(/^[A-Z0-9-]+$/)]],
-    admissionFeeAmount: [10.0, [Validators.required, Validators.min(0)]],
+    admissionFeeAmount: [9500.0, [Validators.required, Validators.min(0)]],
     expiryDays: [2, [Validators.required, Validators.min(1), Validators.max(30)]],
     remarks: [''],
   });

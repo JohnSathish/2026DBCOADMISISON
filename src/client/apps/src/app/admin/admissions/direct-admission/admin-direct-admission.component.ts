@@ -25,7 +25,7 @@ export class AdminDirectAdmissionComponent {
 
   readonly formData = signal({
     minimumPercentage: 60.0,
-    admissionFeeAmount: 10.0,
+    admissionFeeAmount: 9500.0,
     expiryDate: '',
   });
 
@@ -85,7 +85,7 @@ export class AdminDirectAdmissionComponent {
   resetForm(): void {
     this.formData.set({
       minimumPercentage: 60.0,
-      admissionFeeAmount: 10.0,
+      admissionFeeAmount: 9500.0,
       expiryDate: '',
     });
     this.error.set(null);

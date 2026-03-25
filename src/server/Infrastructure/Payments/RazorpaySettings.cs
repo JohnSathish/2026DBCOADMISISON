@@ -10,7 +10,7 @@ public class RazorpaySettings
     public string KeyId { get; set; } = string.Empty;
     public string KeySecret { get; set; } = string.Empty;
     public bool TestMode { get; set; } = true;
-    public decimal ApplicationFeeAmount { get; set; } = 600.00m;
+    public decimal ApplicationFeeAmount { get; set; } = 700.00m;
 
     /// <summary>
     /// Full URL to a square-ish logo (PNG/JPG/SVG) passed to Standard Checkout as <c>image</c>.

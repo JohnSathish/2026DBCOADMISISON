@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using ERP.Application.Admissions.DTOs;
 using ERP.Application.Admissions.Interfaces;
+using ERP.Application.Admissions.Options;
+using Microsoft.Extensions.Options;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -12,6 +14,7 @@ namespace ERP.Infrastructure.Admissions;
 
 public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
 {
+    private readonly decimal _applicationFeeAmount;
     private static readonly object LicenseLock = new();
     private static bool _questPdfLicenseConfigured;
     private readonly record struct StepProgress(string Key, string Title, bool IsComplete);
@@ -20,13 +23,13 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
          {
             ["ShiftI"] = "Shift - I (6:30 am to 9:30 am)",
             ["ShiftII"] = "Shift - II (9:45 am to 3:30 pm)",
-            ["ShiftIII"] = "Shift - III (2:45 pm to 5:45 pm)",
+            ["ShiftIII"] = "Shift - III (no longer offered)",
             ["Morning"] = "Shift - I (Morning)",
             ["Day"] = "Shift - II (Day)",
-            ["Evening"] = "Shift - III (Evening)",
+            ["Evening"] = "Evening (legacy; no longer offered)",
             ["SHIFT - I (TIMING : 7.30 AM - 1.15 PM)"] = "Shift - I (Legacy)",
             ["SHIFT - II (TIMING : 9.45 AM - 3.30 PM)"] = "Shift - II (Legacy)",
-            ["SHIFT - III (TIMING : 1.30 PM - 6.15 PM)"] = "Shift - III (Legacy)"
+            ["SHIFT - III (TIMING : 1.30 PM - 6.15 PM)"] = "Shift - III (Legacy; no longer offered)"
          };
 
     private static readonly IReadOnlyDictionary<string, string> CourseOptionDisplayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -46,6 +49,11 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
         ["VAC 140"] = "VAC 140 — ENVIRONMENT STUDIES",
     };
 
+    public ApplicantApplicationPdfService(IOptions<ApplicantApplicationFeeOptions> applicationFeeOptions)
+    {
+        _applicationFeeAmount = applicationFeeOptions.Value.ApplicationFeeAmount;
+    }
+
     public Task<ApplicantApplicationPdfResult> GenerateAsync(
         ApplicantApplicationDraftDto payload,
         bool isPaymentCompleted,
@@ -60,7 +68,7 @@ public class ApplicantApplicationPdfService : IApplicantApplicationPdfService
 
         var generatedOn = DateTime.UtcNow;
         var fileName = $"admission-application-{generatedOn:yyyyMMddHHmmss}.pdf";
-        const decimal applicationFee = 10m;
+        var applicationFee = _applicationFeeAmount;
 
         var pdf = Document.Create(container =>
         {

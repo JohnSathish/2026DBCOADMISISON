@@ -54,9 +54,9 @@ public sealed class GetAdmissionFeeQueryHandler : IRequestHandler<GetAdmissionFe
         var isPaymentValid = _admissionFeeService.IsPaymentAmountValid(paidAmount, majorSubject);
 
         var message = isPaymentValid
-            ? $"Payment of ₹{paidAmount:N2} is valid for admission."
-            : $"Required admission fee: ₹{requiredAmount:N2}. " +
-              $"{(paidAmount.HasValue ? $"Paid: ₹{paidAmount:N2}. " : "No payment recorded. ")}" +
+            ? $"Payment of ₹{paidAmount:N2} meets the post-selection admission fee requirement."
+            : $"Required post-selection admission fee: ₹{requiredAmount:N2} (minimum; management may set a higher final amount). " +
+              $"{(paidAmount.HasValue ? $"Recorded payment: ₹{paidAmount:N2}. " : "No payment recorded. ")}" +
               $"Please pay the required amount to proceed with enrollment.";
 
         return new AdmissionFeeDto(

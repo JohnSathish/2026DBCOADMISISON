@@ -35,10 +35,10 @@ export class AdminOfflineAdmissionComponent implements OnInit {
   issue = {
     formNumber: '',
     studentName: '',
-    shift: '' as '' | 'ShiftI' | 'ShiftII' | 'ShiftIII',
+    shift: '' as '' | 'ShiftI' | 'ShiftII',
     mobileNumber: '',
     cuet: '' as '' | 'yes' | 'no',
-    applicationFeeAmount: 0,
+    applicationFeeAmount: 700,
   };
 
   receiveFormNumber = '';

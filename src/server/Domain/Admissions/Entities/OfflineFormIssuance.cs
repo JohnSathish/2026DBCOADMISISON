@@ -16,7 +16,7 @@ public class OfflineFormIssuance
 
     public decimal ApplicationFeeAmount { get; set; }
 
-    /// <summary>Canonical shift: ShiftI, ShiftII, or ShiftIII (set at issuance).</summary>
+    /// <summary>Canonical shift: ShiftI or ShiftII for new issuance; ShiftIII may exist on legacy rows.</summary>
     public string Shift { get; set; } = string.Empty;
 
     /// <summary>Whether the student had applied for CUET at issuance.</summary>
