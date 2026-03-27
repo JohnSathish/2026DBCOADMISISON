@@ -64,9 +64,16 @@
         <a class="login__forgot" href="#">Forgot password?</a>
       </label>
 
-      <label class="login__remember">
-        <input type="checkbox" formControlName="rememberMe" />
-        <span>Remember me on this device</span>
+      <label class="login__remember" for="login-rememberMe">
+        <span class="login__remember-check-wrap">
+          <input
+            id="login-rememberMe"
+            type="checkbox"
+            formControlName="rememberMe"
+            class="login__remember-input"
+          />
+        </span>
+        <span class="login__remember-text">Remember me on this device</span>
       </label>
 
       <div class="login__messages" *ngIf="serverError">
@@ -88,6 +95,13 @@
       <p class="login__register-prompt">
         Don't have an account?
         <a routerLink="/register" class="login__register-link">Register here</a>
+      </p>
+
+      <p class="login__helpline">
+        <span class="login__helpline-label">Admission Help Desk:</span>
+        <a href="tel:+919402152496">+91 9402152496</a>
+        <span aria-hidden="true"> / </span>
+        <a href="tel:+919566363655">+91 9566363655</a>
       </p>
     </form>
   </div>

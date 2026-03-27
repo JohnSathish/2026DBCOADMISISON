@@ -19,16 +19,25 @@ public class AdminJwtTokenGenerator : IAdminJwtTokenGenerator
 
     public JwtTokenResult GenerateToken(AdminUser adminUser, TimeSpan? lifetime = null)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
+        var secretBytes = string.IsNullOrEmpty(_settings.Secret)
+            ? Array.Empty<byte>()
+            : Encoding.UTF8.GetBytes(_settings.Secret);
+        if (secretBytes.Length < 32)
+        {
+            throw new InvalidOperationException(
+                "JWT secret must be at least 32 bytes in UTF-8 (add characters if needed). Configure Authentication:Jwt:Secret.");
+        }
+
+        var key = new SymmetricSecurityKey(secretBytes);
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, adminUser.Id.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(JwtRegisteredClaimNames.Email, adminUser.Email),
-            new("username", adminUser.Username),
-            new("name", adminUser.FullName),
+            new(JwtRegisteredClaimNames.Email, adminUser.Email ?? string.Empty),
+            new("username", adminUser.Username ?? string.Empty),
+            new("name", adminUser.FullName ?? string.Empty),
             new(ClaimTypes.Role, "Admin")
         };
 

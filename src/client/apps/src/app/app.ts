@@ -26,6 +26,8 @@ export class App {
   protected readonly profile = computed(() => this.auth.profile);
   protected readonly toasts = this.toastsService.toasts;
   protected readonly isAdminRoute = signal(false);
+  /** Footer “Powered By” contact popup */
+  protected readonly creditsOpen = signal(false);
 
   constructor() {
     const syncAdminBody = (url: string) => {
@@ -54,5 +56,13 @@ export class App {
 
   dismissToast(id: number): void {
     this.toastsService.dismiss(id);
+  }
+
+  openCreditsModal(): void {
+    this.creditsOpen.set(true);
+  }
+
+  closeCreditsModal(): void {
+    this.creditsOpen.set(false);
   }
 }

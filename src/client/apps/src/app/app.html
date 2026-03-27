@@ -5,7 +5,55 @@
 
   <footer class="app-shell__footer">
     <small>&copy; {{ currentYear }} Don Bosco College Tura. All rights reserved.</small>
+    <p class="app-shell__helpline">
+      Admission Help Desk:
+      <a href="tel:+919402152496">+91 9402152496</a>
+      <span aria-hidden="true"> / </span>
+      <a href="tel:+919566363655">+91 9566363655</a>
+    </p>
+    <p class="app-shell__credits">
+      <button type="button" class="app-shell__credits-btn" (click)="openCreditsModal()">
+        Powered By BoscoConnectERP
+      </button>
+    </p>
   </footer>
+
+  <div
+    class="app-credits-overlay"
+    *ngIf="creditsOpen()"
+    (click)="closeCreditsModal()"
+    role="presentation"
+    aria-hidden="true"
+  >
+    <div
+      class="app-credits-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="app-credits-title"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="app-credits-title" class="app-credits-dialog__title">BoscoConnectERP</h2>
+      <dl class="app-credits-dialog__list">
+        <div class="app-credits-dialog__row">
+          <dt>Name</dt>
+          <dd>John Sathish S</dd>
+        </div>
+        <div class="app-credits-dialog__row">
+          <dt>Contact Number</dt>
+          <dd>
+            <a href="tel:+919566363655">9566363655</a>
+          </dd>
+        </div>
+        <div class="app-credits-dialog__row">
+          <dt>Email</dt>
+          <dd>
+            <a href="mailto:johnsathish16@gmail.com">johnsathish16@gmail.com</a>
+          </dd>
+        </div>
+      </dl>
+      <button type="button" class="app-credits-dialog__close" (click)="closeCreditsModal()">Close</button>
+    </div>
+  </div>
 </div>
 
 <ng-template #adminLayout>

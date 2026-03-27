@@ -48,20 +48,40 @@ export class RegistrationComponent {
   /** Drag-over state for profile photo drop zone */
   photoDropZoneActive = false;
 
+  /** India mobile: 10 digits, first digit 6–9. */
+  private static readonly indiaMobilePattern = /^[6-9]\d{9}$/;
+  /** Practical email format (RFC-style, not exhaustive). */
+  private static readonly emailPattern =
+    /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  /** Name: letters and spaces; optional apostrophe, hyphen, dot within name (min 3 chars). */
+  private static readonly fullNamePattern = /^[a-zA-Z][a-zA-Z\s.'-]{2,}$/;
+
   readonly form = this.fb.nonNullable.group({
-    fullName: ['', [Validators.required, Validators.maxLength(256)]],
+    fullName: [
+      '',
+      [
+        Validators.required,
+        Validators.minLength(3),
+        Validators.maxLength(256),
+        Validators.pattern(RegistrationComponent.fullNamePattern),
+      ],
+    ],
     dateOfBirth: [
       '',
       [Validators.required, this.dateFormatValidator(), this.pastDateValidator()],
     ],
     gender: ['', Validators.required],
-    email: ['', [Validators.required, Validators.maxLength(256)]], // Email validation temporarily disabled for testing
-    mobileNumber: [
+    email: [
       '',
       [
         Validators.required,
-        // Mobile number pattern validation temporarily disabled for testing
+        Validators.maxLength(256),
+        Validators.pattern(RegistrationComponent.emailPattern),
       ],
+    ],
+    mobileNumber: [
+      '',
+      [Validators.required, Validators.pattern(RegistrationComponent.indiaMobilePattern)],
     ],
     profilePhoto: [null as File | null],
     agreedToTerms: [false, Validators.requiredTrue],
@@ -74,19 +94,30 @@ export class RegistrationComponent {
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.submitError =
+        'Please fix the highlighted fields above (scroll up if needed), then try again.';
       return;
     }
 
     const photo = this.form.get('profilePhoto')?.value as File | null;
     if (!photo) {
       this.photoError = 'Please upload a passport-style photograph (JPEG or PNG, max 2 MB).';
+      this.submitError =
+        'A profile photo is required. Choose a JPEG or PNG file (max 2 MB) in the upload area.';
       return;
     }
 
     this.isSubmitting = true;
     this.submitError = null;
 
-    const payload = this.mapFormToPayload();
+    let payload: RegisterStudentApplicantRequest;
+    try {
+      payload = this.mapFormToPayload();
+    } catch {
+      this.isSubmitting = false;
+      this.submitError = 'Date of birth is invalid. Use mm/dd/yyyy with a real calendar date.';
+      return;
+    }
 
     this.api
       .registerApplicant(payload, photo)
@@ -165,24 +196,23 @@ export class RegistrationComponent {
   }
 
   onMobileInput(event: Event): void {
-    // Mobile number input restriction temporarily disabled for testing
-    // const input = event.target as HTMLInputElement;
-    // const control = this.form.get('mobileNumber');
-    // if (!control) {
-    //   return;
-    // }
+    const input = event.target as HTMLInputElement;
+    const control = this.form.get('mobileNumber');
+    if (!control) {
+      return;
+    }
 
-    // const selectionStart = input.selectionStart ?? input.value.length;
-    // const digits = input.value.replace(/\D/g, '').slice(0, 10);
+    const selectionStart = input.selectionStart ?? input.value.length;
+    const digits = input.value.replace(/\D/g, '').slice(0, 10);
 
-    // control.setValue(digits, { emitEvent: false });
-    // control.markAsDirty();
-    // control.updateValueAndValidity({ emitEvent: false });
+    control.setValue(digits, { emitEvent: false });
+    control.markAsDirty();
+    control.updateValueAndValidity({ emitEvent: false });
 
-    // const caret = Math.min(selectionStart, digits.length);
-    // requestAnimationFrame(() => {
-    //   input.selectionStart = input.selectionEnd = caret;
-    // });
+    const caret = Math.min(selectionStart, digits.length);
+    requestAnimationFrame(() => {
+      input.selectionStart = input.selectionEnd = caret;
+    });
   }
 
   private calculateDateCaretPosition(currentPosition: number, formatted: string): number {

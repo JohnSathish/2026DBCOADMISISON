@@ -6,6 +6,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 using ERP.Application.Admissions.Interfaces;
+using ERP.Application.Admissions.Options;
 using ERP.Domain.Admissions.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,19 +18,28 @@ public class RegistrationNotificationService : IApplicantNotificationService
     private readonly HttpClient _httpClient;
     private readonly SmsSettings _smsSettings;
     private readonly EmailSettings _emailSettings;
+    private readonly AdmissionsWorkflowOptions _admissions;
     private readonly ILogger<RegistrationNotificationService> _logger;
 
     public RegistrationNotificationService(
         HttpClient httpClient,
         IOptions<SmsSettings> smsOptions,
         IOptions<EmailSettings> emailOptions,
+        IOptions<AdmissionsWorkflowOptions> admissionsOptions,
         ILogger<RegistrationNotificationService> logger)
     {
         _httpClient = httpClient;
         _smsSettings = smsOptions.Value;
         _emailSettings = emailOptions.Value;
+        _admissions = admissionsOptions.Value;
         _logger = logger;
     }
+
+    /// <summary>Configured applicant portal origin (no trailing slash), e.g. https://admissionsdbctura.com</summary>
+    private string ApplicantBaseUrl => _admissions.ApplicantPortalBaseUrl.TrimEnd('/');
+
+    /// <summary>Login page for emails/SMS, e.g. https://admissionsdbctura.com/login</summary>
+    private string ApplicantLoginUrl => $"{ApplicantBaseUrl}/login";
 
     public async Task SendRegistrationNotificationsAsync(
         string fullName,
@@ -107,7 +117,7 @@ public class RegistrationNotificationService : IApplicantNotificationService
         string resetBy,
         CancellationToken cancellationToken = default)
     {
-        var loginUrl = "http://localhost:4200/login";
+        var loginUrl = ApplicantLoginUrl;
         var emailBody = $@"
 <!DOCTYPE html>
 <html>
@@ -257,8 +267,8 @@ public class RegistrationNotificationService : IApplicantNotificationService
         string pdfFileName,
         CancellationToken cancellationToken = default)
     {
-        var loginUrl = "https://admissions.donboscocollege.ac.in/login";
-        
+        var loginUrl = ApplicantLoginUrl;
+
         var body = $@"
 <!DOCTYPE html>
 <html>
@@ -344,9 +354,7 @@ public class RegistrationNotificationService : IApplicantNotificationService
         CancellationToken cancellationToken = default)
     {
         var paidText = paidOnUtc.ToString("dd MMMM yyyy, hh:mm tt 'UTC'", CultureInfo.InvariantCulture);
-        var portalUrl = Environment.GetEnvironmentVariable("ADMISSION_PORTAL_BASE_URL")
-            ?? "http://localhost:4200";
-        var dashboardUrl = $"{portalUrl.TrimEnd('/')}/app/dashboard";
+        var dashboardUrl = $"{ApplicantBaseUrl}/app/dashboard";
 
         var body = $@"
 <!DOCTYPE html>
@@ -418,7 +426,7 @@ public class RegistrationNotificationService : IApplicantNotificationService
         CancellationToken cancellationToken = default)
     {
         var enrollmentDate = enrolledOnUtc.ToString("dd MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
-        var loginUrl = "https://admissions.donboscocollege.ac.in/login";
+        var loginUrl = ApplicantLoginUrl;
         var remarksHtml = !string.IsNullOrWhiteSpace(remarks)
             ? $@"<p><strong>Remarks:</strong> {remarks.Trim().Replace("\n", "<br>")}</p>"
             : string.Empty;
@@ -542,8 +550,8 @@ public class RegistrationNotificationService : IApplicantNotificationService
         }
 
         var loginUrl = string.IsNullOrWhiteSpace(_smsSettings.LoginUrl)
-            ? "https://admissions.donboscocollege.ac.in/login"
-            : _smsSettings.LoginUrl;
+            ? ApplicantLoginUrl
+            : _smsSettings.LoginUrl.Trim();
 
         // Use registered template content if provided, otherwise use default message
         string message;
@@ -879,9 +887,9 @@ public class RegistrationNotificationService : IApplicantNotificationService
         }
     }
 
-    private static string BuildRegistrationEmailBody(string fullName, string uniqueId, string username, string temporaryPassword)
+    private string BuildRegistrationEmailBody(string fullName, string uniqueId, string username, string temporaryPassword)
     {
-        var loginUrl = "https://admissions.donboscocollege.ac.in/login";
+        var loginUrl = ApplicantLoginUrl;
         
         return $@"
 <!DOCTYPE html>
@@ -943,7 +951,7 @@ public class RegistrationNotificationService : IApplicantNotificationService
 </html>";
     }
 
-    private static string BuildStatusEmailBody(
+    private string BuildStatusEmailBody(
         string fullName,
         string applicationNumber,
         ApplicationStatus status,
@@ -972,8 +980,8 @@ public class RegistrationNotificationService : IApplicantNotificationService
             _ => "Under Review"
         };
 
-        var loginUrl = "https://admissions.donboscocollege.ac.in/login";
-        
+        var loginUrl = ApplicantLoginUrl;
+
         // Special format for Approved status
         if (status == ApplicationStatus.Approved)
         {
@@ -1148,8 +1156,8 @@ public class RegistrationNotificationService : IApplicantNotificationService
         var offerDateText = offerDate.ToString("dd MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
         var expiryDateText = expiryDate.ToString("dd MMMM yyyy 'at' HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         var daysUntilExpiry = (int)Math.Ceiling((expiryDate - DateTime.UtcNow).TotalDays);
-        var loginUrl = "https://admissions.donboscocollege.ac.in/login";
-        var offerUrl = $"{loginUrl}/app/offer";
+        var loginUrl = ApplicantLoginUrl;
+        var offerUrl = $"{ApplicantBaseUrl}/app/offer";
 
         var emailBody = $@"
 <!DOCTYPE html>
@@ -1265,7 +1273,7 @@ public class RegistrationNotificationService : IApplicantNotificationService
         CancellationToken cancellationToken = default)
     {
         var acceptedDateText = acceptedOnUtc.ToString("dd MMMM yyyy 'at' HH:mm", System.Globalization.CultureInfo.InvariantCulture);
-        var loginUrl = "https://admissions.donboscocollege.ac.in/login";
+        var loginUrl = ApplicantLoginUrl;
 
         var emailBody = $@"
 <!DOCTYPE html>
@@ -1449,10 +1457,8 @@ public class RegistrationNotificationService : IApplicantNotificationService
         var offerDateText = offerDate.ToString("dd MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
         var expiryDateText = expiryDate.ToString("dd MMMM yyyy 'at' HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         var daysUntilExpiry = (int)Math.Ceiling((expiryDate - DateTime.UtcNow).TotalDays);
-        // Use localhost for development, can be configured via settings
-        var loginUrl = Environment.GetEnvironmentVariable("ADMISSION_PORTAL_LOGIN_URL") 
-            ?? "http://localhost:4200/login";
-        var paymentUrl = $"{loginUrl.Replace("/login", "")}/app/dashboard";
+        var loginUrl = ApplicantLoginUrl;
+        var paymentUrl = $"{ApplicantBaseUrl}/app/dashboard";
 
         var emailBody = $@"
 <!DOCTYPE html>
@@ -1703,9 +1709,9 @@ public class RegistrationNotificationService : IApplicantNotificationService
         }
     }
 
-    private static string BuildBulkEmailBody(string fullName, string message)
+    private string BuildBulkEmailBody(string fullName, string message)
     {
-        var loginUrl = "https://admissions.donboscocollege.ac.in/login";
+        var loginUrl = ApplicantLoginUrl;
 
         return $@"
 <!DOCTYPE html>

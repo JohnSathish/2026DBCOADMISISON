@@ -19,16 +19,27 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
     public JwtTokenResult GenerateToken(StudentApplicantAccount account, TimeSpan? lifetime = null)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
+        var secretBytes = string.IsNullOrEmpty(_settings.Secret)
+            ? Array.Empty<byte>()
+            : Encoding.UTF8.GetBytes(_settings.Secret);
+        // HS256 requires key size > 256 bits (IdentityModel validates byte length, not character count).
+        if (secretBytes.Length < 32)
+        {
+            throw new InvalidOperationException(
+                "JWT secret must be at least 32 bytes in UTF-8 (add characters if needed). Configure Authentication:Jwt:Secret.");
+        }
+
+        var key = new SymmetricSecurityKey(secretBytes);
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        // Claim value must not be null or JwtSecurityTokenHandler can throw.
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, account.Id.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(JwtRegisteredClaimNames.Email, account.Email),
-            new("unique_id", account.UniqueId),
-            new("name", account.FullName),
+            new(JwtRegisteredClaimNames.Email, account.Email ?? string.Empty),
+            new("unique_id", account.UniqueId ?? string.Empty),
+            new("name", account.FullName ?? string.Empty),
             new(ClaimTypes.Role, "Applicant")
         };
 

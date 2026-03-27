@@ -1,6 +1,7 @@
-import { Component, computed, CUSTOM_ELEMENTS_SCHEMA, inject, viewChild } from '@angular/core';
+import { Component, computed, CUSTOM_ELEMENTS_SCHEMA, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApplicantPortalStore } from './applicant-portal.store';
 import { PaymentComponent } from '../payment/payment.component';
 import { API_BASE_URL } from '@client/shared/util';
@@ -50,7 +51,34 @@ function splitElectiveCatalogLine(s: string): { code: string; name: string; full
 export class DashboardComponent {
   private readonly store = inject(ApplicantPortalStore);
   private readonly apiBaseUrl = inject(API_BASE_URL);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly paymentComponent = viewChild(PaymentComponent);
+
+  /** Shown after online payment when redirected with `?paymentSuccess=1`. */
+  readonly showPaymentSuccessBanner = signal(false);
+
+  constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((pm) => {
+      this.showPaymentSuccessBanner.set(pm.get('paymentSuccess') === '1');
+    });
+  }
+
+  dismissPaymentSuccessBanner(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { paymentSuccess: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    this.showPaymentSuccessBanner.set(false);
+  }
+
+  goToApplicationFormDownload(): void {
+    void this.router.navigate(['/app/profile/application'], {
+      queryParams: { downloadForm: '1' },
+    });
+  }
 
   readonly profile = computed(() => this.store.dashboard()?.profile ?? null);
 

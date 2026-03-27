@@ -38,8 +38,14 @@
                 class="reg-field__input"
               />
               <span class="reg-field__success" *ngIf="controlValid('fullName')" aria-hidden="true">✓</span>
-              <span class="reg-field__error" *ngIf="controlInvalid('fullName')">
+              <span class="reg-field__error" *ngIf="controlInvalid('fullName') && form.get('fullName')?.hasError('required')">
                 Please enter the applicant's full name.
+              </span>
+              <span class="reg-field__error" *ngIf="controlInvalid('fullName') && form.get('fullName')?.hasError('minlength')">
+                Name must be at least 3 characters.
+              </span>
+              <span class="reg-field__error" *ngIf="controlInvalid('fullName') && form.get('fullName')?.hasError('pattern')">
+                Use only letters, spaces, and simple punctuation (apostrophe, hyphen, dot). No numbers.
               </span>
             </label>
 
@@ -85,8 +91,8 @@
 
             <label class="reg-field" [class.reg-field--invalid]="controlInvalid('gender')" [class.reg-field--valid]="controlValid('gender')">
               <span class="reg-field__label">Gender *</span>
-              <select formControlName="gender" class="reg-field__input">
-                <option value="" disabled>Select gender</option>
+              <select formControlName="gender" class="reg-field__input" required>
+                <option value="" disabled hidden>Select gender</option>
                 <option *ngFor="let option of genderOptions" [value]="option">
                   {{ option }}
                 </option>
@@ -114,8 +120,11 @@
                 An account already exists for this email address.
               </span>
               <ng-template #emailGeneralError>
-                <span class="reg-field__error" *ngIf="controlInvalid('email')">
-                  Enter a valid email address.
+                <span class="reg-field__error" *ngIf="controlInvalid('email') && form.get('email')?.hasError('pattern')">
+                  Enter a valid email address (e.g. name&#64;example.com).
+                </span>
+                <span class="reg-field__error" *ngIf="controlInvalid('email') && !form.get('email')?.hasError('pattern')">
+                  Enter your email address.
                 </span>
               </ng-template>
             </label>
@@ -164,7 +173,9 @@
                   type="tel"
                   formControlName="mobileNumber"
                   autocomplete="tel"
-                  placeholder="Enter contact number"
+                  placeholder="10-digit mobile number"
+                  inputmode="numeric"
+                  maxlength="10"
                   (input)="onMobileInput($event)"
                   class="reg-field__input"
                 />
@@ -179,8 +190,11 @@
                   An account already exists for this mobile number.
                 </span>
                 <ng-template #mobileGeneralError>
-                  <span class="reg-field__error" *ngIf="controlInvalid('mobileNumber')">
-                    Enter a valid 10-digit contact number.
+                  <span class="reg-field__error" *ngIf="controlInvalid('mobileNumber') && form.get('mobileNumber')?.hasError('pattern')">
+                    Enter exactly 10 digits (Indian mobile, starting with 6–9).
+                  </span>
+                  <span class="reg-field__error" *ngIf="controlInvalid('mobileNumber') && !form.get('mobileNumber')?.hasError('pattern')">
+                    Mobile number is required.
                   </span>
                 </ng-template>
               </label>
@@ -188,8 +202,15 @@
           </div>
 
           <label class="reg-terms">
-            <input type="checkbox" formControlName="agreedToTerms" />
-            <span>
+            <span class="reg-terms__check-wrap">
+              <input
+                id="reg-agreedToTerms"
+                type="checkbox"
+                formControlName="agreedToTerms"
+                class="reg-terms__input"
+              />
+            </span>
+            <span class="reg-terms__text">
               I confirm that the information provided is accurate and I agree to the college's admissions policies.
             </span>
           </label>
@@ -250,7 +271,7 @@
             </li>
             <li class="reg-instructions__step">
               <span class="reg-instructions__num" aria-hidden="true">4</span>
-              Enter Class X and XII marks, including aggregate percentage, in the Marks Section and click "Next/Update".
+              Enter Class XII marks, including aggregate percentage, in the Marks Section and click "Next/Update".
             </li>
             <li class="reg-instructions__step">
               <span class="reg-instructions__num" aria-hidden="true">5</span>
@@ -278,6 +299,12 @@
 
           <div class="reg-instructions__help">
             <strong>Need help?</strong> Contact the admissions office during working hours.
+            <div class="reg-instructions__helpline">
+              Admission Help Desk:
+              <a href="tel:+919402152496">+91 9402152496</a>
+              <span aria-hidden="true"> / </span>
+              <a href="tel:+919566363655">+91 9566363655</a>
+            </div>
           </div>
         </div>
       </details>
@@ -303,7 +330,7 @@
             </li>
             <li class="reg-instructions__step">
               <span class="reg-instructions__num" aria-hidden="true">4</span>
-              Enter Class X and XII marks, including aggregate percentage, in the Marks Section and click "Next/Update".
+              Enter Class XII marks, including aggregate percentage, in the Marks Section and click "Next/Update".
             </li>
             <li class="reg-instructions__step">
               <span class="reg-instructions__num" aria-hidden="true">5</span>
@@ -332,6 +359,12 @@
           </p>
           <div class="reg-instructions__help">
             <strong>Need help?</strong> Contact the admissions office during working hours.
+            <div class="reg-instructions__helpline">
+              Admission Help Desk:
+              <a href="tel:+919402152496">+91 9402152496</a>
+              <span aria-hidden="true"> / </span>
+              <a href="tel:+919566363655">+91 9566363655</a>
+            </div>
           </div>
         </div>
       </div>

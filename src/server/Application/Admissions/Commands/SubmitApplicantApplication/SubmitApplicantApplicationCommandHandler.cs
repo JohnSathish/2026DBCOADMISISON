@@ -131,9 +131,9 @@ public sealed class SubmitApplicantApplicationCommandHandler
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(
+                    _logger.LogError(
                         ex,
-                        "Application submitted for account {AccountId} but submission email could not be sent.",
+                        "Application submitted for account {AccountId} but submission email could not be sent. Check Notifications:Email (SMTP) and logs.",
                         accountId);
                 }
             },

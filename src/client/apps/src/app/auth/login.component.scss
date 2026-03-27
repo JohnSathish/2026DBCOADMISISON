@@ -199,20 +199,47 @@
   text-decoration: underline;
 }
 
-// ============ REMEMBER ME ============
+// ============ REMEMBER ME — touch-friendly tap area ============
 .login__remember {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  align-items: flex-start;
+  gap: 0.35rem;
   margin: 0.5rem 0 1.25rem;
   color: #374151;
   font-size: 14px;
   cursor: pointer;
 }
 
-.login__remember input {
+.login__remember-check-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+  margin: -8px 0 -8px -10px;
+}
+
+.login__remember-input {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  margin: 0;
   accent-color: #1e3a8a;
   cursor: pointer;
+}
+
+.login__remember-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.45;
+  padding-top: 10px;
+}
+
+.login__remember-input:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
 // ============ MESSAGES ============
@@ -311,14 +338,45 @@
   text-decoration: underline;
 }
 
+.login__helpline {
+  margin: 1rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #64748b;
+}
+
+.login__helpline-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.login__helpline a {
+  color: #1b5e9d;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login__helpline a:hover {
+  text-decoration: underline;
+}
+
 // ============ MOBILE ============
 @media (max-width: 480px) {
   :host {
-    padding: 16px 12px;
+    padding: 12px 8px;
+  }
+
+  .login {
+    max-width: none;
   }
 
   .login__card {
-    padding: 24px 20px;
+    padding: 22px 16px;
   }
 
   .login__head-row {

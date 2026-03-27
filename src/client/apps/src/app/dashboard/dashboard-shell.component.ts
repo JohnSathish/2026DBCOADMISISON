@@ -68,21 +68,14 @@ export class DashboardShellComponent implements OnInit, OnDestroy {
   readonly profilePhotoUrl = computed(() => {
     const photo = this.profile()?.photoUrl?.trim();
     if (!photo) {
-      console.debug('[DashboardShell] No profile photo available', this.profile());
       return null;
     }
     if (/^https?:\/\//i.test(photo)) {
-      console.debug('[DashboardShell] Using absolute photo URL', photo);
       return photo;
     }
     const root = this.apiBaseUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
     const normalizedPhoto = photo.startsWith('/') ? photo : `/${photo}`;
-    const resolved = `${root}${normalizedPhoto}`;
-    console.debug('[DashboardShell] Resolved relative photo URL', {
-      raw: photo,
-      resolved,
-    });
-    return resolved;
+    return `${root}${normalizedPhoto}`;
   });
   readonly applicationSteps = this.applicationNav.steps;
   readonly activeApplicationStep = this.applicationNav.currentIndex;

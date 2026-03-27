@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { PaymentApiService } from '@client/shared/data';
 import { ApplicantPortalStore } from '../dashboard/applicant-portal.store';
 import { ToastService } from '../shared/toast.service';
@@ -23,6 +24,7 @@ export class PaymentComponent {
   private readonly paymentApi = inject(PaymentApiService);
   private readonly store = inject(ApplicantPortalStore);
   private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
 
   readonly isProcessing = signal(false);
   readonly isOpen = signal(false);
@@ -143,8 +145,11 @@ export class PaymentComponent {
           if (result.success) {
             this.toast.show('Payment completed successfully!', 'success');
             this.close();
-            // Reload dashboard to refresh payment status
-            this.store.loadDashboard();
+            void this.store.loadDashboard().then(() => {
+              void this.router.navigate(['/app/dashboard'], {
+                queryParams: { paymentSuccess: '1' },
+              });
+            });
           } else {
             this.toast.show(
               result.message || 'Payment verification failed.',

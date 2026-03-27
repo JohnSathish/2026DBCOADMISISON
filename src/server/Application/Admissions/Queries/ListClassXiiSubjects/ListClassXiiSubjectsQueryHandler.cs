@@ -1,6 +1,7 @@
 using ERP.Application.Admissions.Interfaces;
 using ERP.Application.Admissions.ViewModels;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace ERP.Application.Admissions.Queries.ListClassXiiSubjects;
 
@@ -18,10 +19,14 @@ public sealed class ListClassXiiSubjectsQueryHandler
     };
 
     private readonly IClassXiiSubjectCatalogRepository _catalog;
+    private readonly ILogger<ListClassXiiSubjectsQueryHandler> _logger;
 
-    public ListClassXiiSubjectsQueryHandler(IClassXiiSubjectCatalogRepository catalog)
+    public ListClassXiiSubjectsQueryHandler(
+        IClassXiiSubjectCatalogRepository catalog,
+        ILogger<ListClassXiiSubjectsQueryHandler> logger)
     {
         _catalog = catalog;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<ClassXiiSubjectOptionDto>> Handle(
@@ -45,6 +50,16 @@ public sealed class ListClassXiiSubjectsQueryHandler
             throw new ArgumentException("Invalid stream. Use ARTS, SCIENCE, or COMMERCE.");
         }
 
-        return await _catalog.ListActiveByBoardAndStreamAsync(board, stream, cancellationToken);
+        var items = await _catalog.ListActiveByBoardAndStreamAsync(board, stream, cancellationToken);
+        if (items.Count == 0)
+        {
+            _logger.LogWarning(
+                "Class XII subject catalog is empty for Board={Board} Stream={Stream}. " +
+                "Restore data in admissions.subjects_master (e.g. admin replace catalog or scripts/import-subjects-master-from-csv.ps1).",
+                board.Trim(),
+                stream.Trim());
+        }
+
+        return items;
     }
 }

@@ -10,6 +10,12 @@
   color: #1f2937;
 }
 
+@media (max-width: 768px) {
+  :host {
+    padding: 8px 0 20px;
+  }
+}
+
 /* Subtle dot grid — stays behind centered card */
 :host::before {
   content: '';
@@ -505,7 +511,7 @@ select.reg-field__input {
   max-height: 120px;
 }
 
-// Terms
+// Terms — large tap target and visibly bigger checkbox (mobile-friendly)
 .reg-terms {
   display: flex;
   align-items: flex-start;
@@ -513,7 +519,7 @@ select.reg-field__input {
   font-size: 15px;
   color: #334155;
   cursor: pointer;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: #f8fafc;
   border-radius: 10px;
   border: 1px solid #e5e7eb;
@@ -524,16 +530,48 @@ select.reg-field__input {
   background: #f1f5f9;
 }
 
-.reg-terms input {
-  margin-top: 3px;
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
+.reg-terms__check-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  min-height: 56px;
+  margin: -8px 0 -8px -10px;
+}
+
+.reg-terms__input {
+  margin: 0;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
   cursor: pointer;
   accent-color: #1e3a8a;
 }
 
-.reg-terms input:focus-visible {
+.reg-terms__text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.45;
+  padding-top: 10px;
+}
+
+@media (max-width: 768px) {
+  .reg-terms__check-wrap {
+    min-width: 60px;
+    min-height: 60px;
+  }
+
+  .reg-terms__input {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+  }
+}
+
+.reg-terms__input:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
@@ -821,6 +859,23 @@ select.reg-field__input {
   color: #1e3a8a;
 }
 
+.reg-instructions__helpline {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 13px;
+}
+
+.reg-instructions__helpline a {
+  color: #1b5e9d;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.reg-instructions__helpline a:hover {
+  text-decoration: underline;
+}
+
 // ============ DESKTOP: hide details, show sticky panel ============
 @media (min-width: 769px) {
   .reg-instructions-details {
@@ -836,8 +891,10 @@ select.reg-field__input {
 @media (max-width: 768px) {
   .registration-container {
     max-width: 100%;
-    padding: 10px;
-    border-radius: 10px;
+    margin: 0;
+    padding: 8px;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
   }
 
   .reg-photo-mobile-row {

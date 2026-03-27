@@ -10,9 +10,16 @@ public class AdminAuthController(IMediator mediator) : ControllerBase
 {
     [HttpPost("login")]
     public async Task<ActionResult<LoginAdminResponse>> Login(
-        [FromBody] LoginAdminRequest request,
+        [FromBody] LoginAdminRequest? request,
         CancellationToken cancellationToken)
     {
+        if (request is null ||
+            string.IsNullOrWhiteSpace(request.Username) ||
+            request.Password is null)
+        {
+            return BadRequest(new { message = "Username and password are required." });
+        }
+
         try
         {
             var command = new LoginAdminCommand(request.Username, request.Password);

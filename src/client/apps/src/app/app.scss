@@ -95,6 +95,128 @@
   color: #52606d;
 }
 
+.app-shell__helpline {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.app-shell__helpline a {
+  color: #1b5e9d;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.app-shell__helpline a:hover {
+  text-decoration: underline;
+}
+
+.app-shell__credits {
+  margin: 0.75rem 0 0;
+}
+
+.app-shell__credits-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  color: #1b5e9d;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.app-shell__credits-btn:hover {
+  color: #284b7a;
+}
+
+.app-credits-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.app-credits-dialog {
+  max-width: 420px;
+  width: 100%;
+  padding: 1.5rem 1.75rem;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 24px 48px rgba(15, 23, 42, 0.18),
+    0 8px 16px rgba(15, 23, 42, 0.08);
+  color: #1f2933;
+}
+
+.app-credits-dialog__title {
+  margin: 0 0 1rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #1b5e9d;
+}
+
+.app-credits-dialog__list {
+  margin: 0;
+}
+
+.app-credits-dialog__row {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.app-credits-dialog__row dt {
+  margin: 0;
+  font-weight: 600;
+  color: #52606d;
+}
+
+.app-credits-dialog__row dd {
+  margin: 0;
+}
+
+.app-credits-dialog__row a {
+  color: #1b5e9d;
+  word-break: break-all;
+}
+
+.app-credits-dialog__close {
+  margin-top: 1.25rem;
+  width: 100%;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(27, 94, 157, 0.35);
+  background: #f3f6ff;
+  color: #1b5e9d;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app-credits-dialog__close:hover {
+  background: #e8eef8;
+}
+
+@media (max-width: 480px) {
+  .app-credits-dialog__row {
+    grid-template-columns: 1fr;
+  }
+
+  .app-credits-dialog__row dt {
+    font-size: 0.85rem;
+  }
+}
+
 @media (max-width: 720px) {
   .app-shell__header {
     flex-direction: column;

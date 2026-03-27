@@ -12,7 +12,7 @@ import {
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import {
   FormArray,
   FormBuilder,
@@ -313,6 +313,8 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly applicantApi = inject(ApplicantApplicationApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   /** Skips clearing Class XII rows when board/stream change comes from draft patch. */
   private draftPatchInProgress = false;
@@ -999,6 +1001,8 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       console.error('Error loading payment status:', error);
       // Don't throw - allow user to continue
     }
+
+    await this.processDownloadFormQueryParam();
     
     // Restore step after init — unless server says application+fee are complete (then stay on declaration for success UI)
     if (
@@ -1357,24 +1361,25 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
       }).toPromise();
 
       if (verifyResponse?.success) {
-        // Reload payment status to get updated payment information
         await this.loadPaymentStatus();
-        
-        // Ensure PDF is available for download
+
         const status = this.paymentStatus();
-        if (status?.isPaymentCompleted) {
-          // Reload PDF if not already loaded
-          if (!this.submittedPdfUrl) {
+        if (status?.isPaymentCompleted && !this.submittedPdfUrl) {
+          try {
             await this.reloadSubmittedPdf();
+          } catch (e) {
+            console.error('reloadSubmittedPdf after payment failed', e);
           }
-          
-          this.toast.show('Payment completed successfully! You can now download your application form.', 'success');
-          
-          // Reload dashboard to reflect updated payment status
-          await this.portalStore.loadDashboard();
-        } else {
-          this.toast.show('Payment completed successfully!', 'success');
         }
+
+        await this.portalStore.loadDashboard();
+        this.toast.show(
+          'Payment completed successfully. You can download your application form from the next screen.',
+          'success'
+        );
+        await this.router.navigate(['/app/dashboard'], {
+          queryParams: { paymentSuccess: '1' },
+        });
       } else {
         this.toast.show(verifyResponse?.message || 'Payment verification failed.', 'error');
       }
@@ -3120,6 +3125,46 @@ export class ApplicantApplicationComponent implements OnInit, OnDestroy {
     link.href = this.submittedPdfUrl;
     link.download = this.submittedPdfFileName ?? 'admission-application.pdf';
     link.click();
+  }
+
+  /** Triggered when opening `/app/profile/application?downloadForm=1` (e.g. from post-payment dashboard). */
+  private async processDownloadFormQueryParam(): Promise<void> {
+    if (this.route.snapshot.queryParamMap.get('downloadForm') !== '1') {
+      return;
+    }
+    try {
+      if (!this.paymentStatus()?.isPaymentCompleted) {
+        this.toast.show(
+          'Complete payment first to download your application form.',
+          'info'
+        );
+        return;
+      }
+      if (!this.submittedPdfUrl) {
+        await this.reloadSubmittedPdf();
+      }
+      if (this.submittedPdfUrl) {
+        this.downloadSubmittedPdf();
+      } else {
+        this.toast.show(
+          'Could not prepare the PDF. Save your application and try again from the form.',
+          'error'
+        );
+      }
+    } catch (e) {
+      console.error('processDownloadFormQueryParam', e);
+      this.toast.show(
+        'Could not download the application form. Please use the button on your application.',
+        'error'
+      );
+    } finally {
+      await this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { downloadForm: null },
+        replaceUrl: true,
+      });
+      this.cdr.markForCheck();
+    }
   }
 
   private setSubmissionPdf(result: ApplicantApplicationSubmitResult): void {

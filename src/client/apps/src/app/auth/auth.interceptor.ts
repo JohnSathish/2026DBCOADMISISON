@@ -18,10 +18,17 @@ export class AuthInterceptor implements HttpInterceptor {
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
     const profile = this.auth.profile;
-    const isAuthRequest = req.url.includes('/auth/applicants');
+    /** Only login + refresh are called without Bearer; change-password and other /auth/applicants/* routes need JWT. */
+    const isApplicantAuthWithoutBearer =
+      req.url.includes('/auth/applicants/login') ||
+      req.url.includes('/auth/applicants/refresh');
+    /** Do not send JWT — endpoint must be anonymous; a stale token causes 401 from JwtBearer before the controller runs. */
+    const isPublicAnonymous =
+      req.url.includes('/registration/student') ||
+      req.url.includes('/admissions/class-xii-subjects');
 
     const authReq =
-      profile && !isAuthRequest && profile.token
+      profile && !isApplicantAuthWithoutBearer && !isPublicAnonymous && profile.token
         ? req.clone({
             setHeaders: { Authorization: `Bearer ${profile.token}` },
           })
@@ -33,13 +40,21 @@ export class AuthInterceptor implements HttpInterceptor {
         const isLoginAttempt =
           url.includes('/auth/applicants/login') || url.includes('/auth/admin/login');
         const isRefreshCall = url.includes('/auth/applicants/refresh');
+        const isPublicAnonymousUrl =
+          url.includes('/registration/student') ||
+          url.includes('/admissions/class-xii-subjects');
+        const isApplicantChangePassword =
+          url.includes('/auth/applicants/change-password');
 
         // Wrong password / invalid login returns 401 — do not run refresh flow (stale session would mask errors).
+        // change-password: 401 means wrong current password or bad JWT — do not refresh-loop; logout skipped below.
         if (
           error.status === 401 &&
           profile?.refreshToken &&
           !isLoginAttempt &&
-          !isRefreshCall
+          !isRefreshCall &&
+          !isPublicAnonymousUrl &&
+          !isApplicantChangePassword
         ) {
           return this.auth.refreshToken(profile.refreshToken).pipe(
             switchMap(() => {
@@ -56,10 +71,12 @@ export class AuthInterceptor implements HttpInterceptor {
           );
         }
 
-        // Expired session on protected APIs — clear stored auth. Skip for failed login so the form stays usable.
+        // Expired session on protected APIs — clear stored auth. Skip for failed login / public anonymous / wrong current password on change-password.
         if (
           (error.status === 401 || error.status === 403) &&
-          !isLoginAttempt
+          !isLoginAttempt &&
+          !isPublicAnonymousUrl &&
+          !isApplicantChangePassword
         ) {
           this.auth.logout();
         }

@@ -134,6 +134,13 @@ builder.Services.AddAuthentication(options =>
             throw new InvalidOperationException("JWT secret is not configured.");
         }
 
+        var secretBytes = Encoding.UTF8.GetBytes(secret);
+        if (secretBytes.Length < 32)
+        {
+            throw new InvalidOperationException(
+                "Authentication:Jwt:Secret must be at least 32 bytes when UTF-8 encoded (HS256 requires a key longer than 256 bits).");
+        }
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -141,7 +148,7 @@ builder.Services.AddAuthentication(options =>
             ValidateAudience = true,
             ValidAudience = builder.Configuration["Authentication:Jwt:Audience"],
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
+            IssuerSigningKey = new SymmetricSecurityKey(secretBytes),
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
@@ -202,6 +209,9 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "Error seeding admin user");
     }
 }
+
+// Must run first when behind nginx/Traefik so scheme/host match the public URL (fixes HTTPS redirect + correct request context).
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {
