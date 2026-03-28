@@ -242,7 +242,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Liveness: use GET /api/health when nginx only proxies /api/* to this app (GET /health at site root is served by the SPA).
 app.MapGet("/health", () => Results.Text("ok", "text/plain"));
+app.MapGet("/api/health", () => Results.Text("ok", "text/plain"));
 
 if (app.Environment.IsDevelopment())
 {
